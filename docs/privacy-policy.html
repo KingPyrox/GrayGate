@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — GrayGate</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.7;
+            color: #1a1a2e;
+            background: #f8f9fa;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.25rem;
+            color: #1a1a2e;
+        }
+        .updated {
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+        h2 {
+            font-size: 1.2rem;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: #4A5568;
+        }
+        p { margin-bottom: 1rem; }
+        ul {
+            margin: 0.5rem 0 1rem 1.5rem;
+        }
+        li { margin-bottom: 0.4rem; }
+        strong { color: #1a1a2e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Policy</h1>
+        <p class="updated"><strong>Last updated:</strong> April 5, 2026</p>
+
+        <h2>Overview</h2>
+        <p>GrayGate is a local-only Android application. It does not collect, store, or transmit any personal data. All data remains on your device.</p>
+
+        <h2>Data Collection</h2>
+        <p><strong>GrayGate does not collect any data.</strong> Specifically:</p>
+        <ul>
+            <li>No personal information is collected</li>
+            <li>No usage analytics or tracking</li>
+            <li>No crash reporting to external services</li>
+            <li>No network requests of any kind</li>
+            <li>No advertisements</li>
+        </ul>
+
+        <h2>Data Stored on Device</h2>
+        <p>GrayGate stores the following data <strong>locally on your device only</strong>:</p>
+        <ul>
+            <li><strong>Selected apps list:</strong> The apps you choose to apply grayscale to, stored in a local database</li>
+            <li><strong>App preferences:</strong> Your settings (grayscale mode, detection engine, manual override), stored in local preferences</li>
+        </ul>
+        <p>This data never leaves your device and is deleted when you uninstall the app.</p>
+
+        <h2>Permissions</h2>
+        <p>GrayGate requests the following permissions, used exclusively for core functionality:</p>
+        <ul>
+            <li><strong>Usage Access:</strong> To detect which app is currently in the foreground. No usage data is stored or transmitted.</li>
+            <li><strong>Write Secure Settings (via ADB):</strong> To toggle the system grayscale filter. This is a one-time setup step.</li>
+            <li><strong>Query Installed Apps:</strong> To display your installed apps so you can select which ones to grayscale. The app list is not stored or transmitted.</li>
+            <li><strong>Foreground Service:</strong> To run the app detection service in the background.</li>
+            <li><strong>Boot Completed:</strong> To restart the detection service after device reboot.</li>
+            <li><strong>Notifications:</strong> To display a persistent notification while the service is running.</li>
+        </ul>
+
+        <h2>Third-Party Services</h2>
+        <p>GrayGate does not integrate with any third-party services, SDKs, or APIs.</p>
+
+        <h2>Children's Privacy</h2>
+        <p>GrayGate does not collect data from anyone, including children under 13.</p>
+
+        <h2>Changes to This Policy</h2>
+        <p>If this policy changes, the updated version will be posted here with a new date.</p>
+
+        <h2>Contact</h2>
+        <p>If you have questions about this privacy policy, please open an issue on the <a href="https://github.com/KingPyrox/GrayGate">project's GitHub repository</a>.</p>
+    </div>
+</body>
+</html>
