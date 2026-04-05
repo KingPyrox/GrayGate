@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs ls:*)",
+      "Bash(ls c:/Programming/GrayGate/gradlew*)",
+      "Bash(c:/Programming/GrayGate/gradlew.bat --version)",
+      "Read(//c/Users/HomeNL/AppData/Local/Android/**)",
+      "Bash(export JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\")",
+      "Bash(export ANDROID_HOME=\"C:/Users/HomeNL/AppData/Local/Android/Sdk\")",
+      "Bash(export PATH=\"$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH\")",
+      "Bash(java -version)",
+      "Bash(\"C:/Program Files/Android/Android Studio/jbr/bin/java.exe\" -version)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" \"C:/Program Files/Android/Android Studio/jbr/bin/java.exe\" -cp \"C:/Program Files/Android/Android Studio/plugins/gradle/lib/gradle.jar\" org.gradle.wrapper.GradleWrapperMain wrapper --gradle-version 8.5)",
+      "Bash(curl -L -o \"c:/Programming/GrayGate/gradle/wrapper/gradle-wrapper.jar\" \"https://raw.githubusercontent.com/gradle/gradle/v8.5.0/gradle/wrapper/gradle-wrapper.jar\")",
+      "Bash(chmod +x gradlew)",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(\"C:/Users/HomeNL/AppData/Local/Android/Sdk/emulator/emulator.exe\" -list-avds)",
+      "Bash(\"C:/Users/HomeNL/AppData/Local/Android/Sdk/platform-tools/adb.exe\" devices:*)",
+      "Bash(\"C:/Users/HomeNL/AppData/Local/Android/Sdk/cmdline-tools/latest/bin/sdkmanager.bat\" --list)",
+      "Bash(\"C:/Users/HomeNL/AppData/Local/Android/Sdk/platform-tools/adb.exe\" logcat:*)",
+      "Bash(\"C:/Users/HomeNL/AppData/Local/Android/Sdk/platform-tools/adb.exe\" kill-server:*)",
+      "Bash(\"C:/Users/HomeNL/AppData/Local/Android/Sdk/platform-tools/adb.exe\" start-server:*)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(tasklist)",
+      "Bash(wmic process:*)",
+      "Bash(powershell -Command \"Get-Process adb | Select-Object Path\")",
+      "Bash(\"C:/Users/HomeNL/AppData/Local/Android/Sdk/platform-tools/adb.exe\" shell:*)",
+      "Bash(ls \"c:/Programming/GrayGate/app/src/main/res/mipmap-\"*)"
+    ]
+  }
+}

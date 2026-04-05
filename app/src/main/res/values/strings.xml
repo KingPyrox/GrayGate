@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GrayGate</string>
+    <string name="tile_label">GrayGate</string>
+    <string name="accessibility_service_description">GrayGate uses this service to detect which app is currently open, so it can automatically switch grayscale on or off for your selected apps. This service does not read or access any screen content.</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Welcome to GrayGate</string>
+    <string name="onboarding_welcome_desc">Take control of your screen. Choose which apps appear in grayscale to reduce distractions and stay focused.</string>
+    <string name="onboarding_usage_title">Usage Access</string>
+    <string name="onboarding_usage_desc">GrayGate needs usage access to detect which app you\'re currently using. This lets us know when to switch grayscale on or off.</string>
+    <string name="onboarding_adb_title">Enable Grayscale Control</string>
+    <string name="onboarding_adb_desc">GrayGate needs a one-time permission to control your display\'s grayscale mode. This requires running a command via ADB (Android Debug Bridge) from a computer.</string>
+    <string name="onboarding_battery_title">Battery Optimization</string>
+    <string name="onboarding_battery_desc">To keep GrayGate running reliably in the background, disable battery optimization for this app. Otherwise, your phone may stop it from working.</string>
+    <string name="onboarding_done_title">You\'re All Set!</string>
+    <string name="onboarding_done_desc">GrayGate is ready. Head to the app list to choose which apps should be grayscaled.</string>
+
+    <!-- ADB Command -->
+    <string name="adb_command">adb shell pm grant com.graygate android.permission.WRITE_SECURE_SETTINGS</string>
+    <string name="adb_command_debug">adb shell pm grant com.graygate.debug android.permission.WRITE_SECURE_SETTINGS</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">GrayGate Status</string>
+    <string name="notification_channel_desc">Shows when GrayGate is actively monitoring apps</string>
+    <string name="notification_title">GrayGate is active</string>
+    <string name="notification_text_standard">Monitoring apps · Standard mode</string>
+    <string name="notification_text_fast">Monitoring apps · Fast mode</string>
+    <string name="notification_action_pause">Pause</string>
+    <string name="notification_action_settings">Settings</string>
+
+    <!-- App List -->
+    <string name="search_apps">Search apps…</string>
+    <string name="no_apps_selected">No apps selected for grayscale yet</string>
+    <string name="mode_blacklist">Blacklist Mode</string>
+    <string name="mode_blacklist_desc">Selected apps appear in grayscale</string>
+    <string name="mode_whitelist">Whitelist Mode</string>
+    <string name="mode_whitelist_desc">Everything is grayscale except selected apps</string>
+
+    <!-- Settings -->
+    <string name="detection_standard">Standard (Usage Stats)</string>
+    <string name="detection_standard_desc">~1–3 second delay, no accessibility service needed</string>
+    <string name="detection_fast">Fast (Accessibility)</string>
+    <string name="detection_fast_desc">~100ms delay, requires enabling accessibility service</string>
+
+    <!-- Quick Settings Tile -->
+    <string name="tile_auto">Auto</string>
+    <string name="tile_force_gray">Grayscale</string>
+    <string name="tile_force_color">Color</string>
+</resources>

@@ -1,0 +1,229 @@
+package com.graygate.ui.screens
+
+import android.graphics.drawable.Drawable
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
+import com.graygate.data.model.AppInfo
+import com.graygate.data.model.GrayscaleMode
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppListScreen(
+    apps: List<AppInfo>,
+    searchQuery: String,
+    selectedCount: Int,
+    grayscaleMode: GrayscaleMode,
+    isEnabled: Boolean,
+    onSearchQueryChange: (String) -> Unit,
+    onToggleApp: (AppInfo) -> Unit,
+    onModeChange: (GrayscaleMode) -> Unit,
+    onEnabledChange: (Boolean) -> Unit,
+    onNavigateToSettings: () -> Unit
+) {
+    var showModeDialog by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text("GrayGate", fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "$selectedCount app${if (selectedCount != 1) "s" else ""} selected · ${
+                                if (grayscaleMode == GrayscaleMode.BLACKLIST) "Blacklist" else "Whitelist"
+                            }",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                actions = {
+                    // Master enable/disable toggle
+                    Switch(
+                        checked = isEnabled,
+                        onCheckedChange = onEnabledChange,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Search bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text("Search apps…") },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { onSearchQueryChange("") }) {
+                            Icon(Icons.Filled.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = MaterialTheme.shapes.large
+            )
+
+            // Mode selector chip
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = grayscaleMode == GrayscaleMode.BLACKLIST,
+                    onClick = { onModeChange(GrayscaleMode.BLACKLIST) },
+                    label = { Text("Blacklist") },
+                    leadingIcon = if (grayscaleMode == GrayscaleMode.BLACKLIST) {{
+                        Icon(Icons.Filled.Check, contentDescription = null, Modifier.size(18.dp))
+                    }} else null
+                )
+                FilterChip(
+                    selected = grayscaleMode == GrayscaleMode.WHITELIST,
+                    onClick = { onModeChange(GrayscaleMode.WHITELIST) },
+                    label = { Text("Whitelist") },
+                    leadingIcon = if (grayscaleMode == GrayscaleMode.WHITELIST) {{
+                        Icon(Icons.Filled.Check, contentDescription = null, Modifier.size(18.dp))
+                    }} else null
+                )
+            }
+
+            // Mode description
+            Text(
+                text = if (grayscaleMode == GrayscaleMode.BLACKLIST)
+                    "Selected apps will appear in grayscale"
+                else
+                    "Everything is grayscale except selected apps",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+            // App list
+            if (apps.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Filled.SearchOff,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            "No apps found",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    items(
+                        items = apps,
+                        key = { it.packageName }
+                    ) { app ->
+                        AppListItem(
+                            app = app,
+                            onToggle = { onToggleApp(app) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppListItem(
+    app: AppInfo,
+    onToggle: () -> Unit
+) {
+    val context = LocalContext.current
+    val icon: Drawable? = remember(app.packageName) {
+        try {
+            context.packageManager.getApplicationIcon(app.packageName)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    ListItem(
+        headlineContent = {
+            Text(
+                text = app.appName,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = if (app.isSelected) FontWeight.Medium else FontWeight.Normal
+            )
+        },
+        supportingContent = {
+            Text(
+                text = app.packageName,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+        },
+        leadingContent = {
+            if (icon != null) {
+                Image(
+                    bitmap = icon.toBitmap(48, 48).asImageBitmap(),
+                    contentDescription = app.appName,
+                    modifier = Modifier.size(40.dp)
+                )
+            } else {
+                Icon(
+                    Icons.Filled.Android,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+        },
+        trailingContent = {
+            Switch(
+                checked = app.isSelected,
+                onCheckedChange = { onToggle() }
+            )
+        },
+        modifier = Modifier.fillMaxWidth()
+    )
+}
