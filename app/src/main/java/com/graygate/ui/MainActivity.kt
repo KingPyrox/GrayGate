@@ -52,6 +52,15 @@ fun GrayGateApp(viewModel: MainViewModel = viewModel()) {
 
     val startDestination = if (isOnboardingComplete) "app_list" else "onboarding"
 
+    // Ensure the detection service is running whenever the app is launched
+    // and onboarding is complete. Settings persist via DataStore, but the
+    // service itself needs to be (re)started after process death or reboot.
+    LaunchedEffect(isOnboardingComplete, detectionEngine, isEnabled) {
+        if (isOnboardingComplete && isEnabled) {
+            viewModel.startService()
+        }
+    }
+
     NavHost(navController = navController, startDestination = startDestination) {
 
         composable("onboarding") {

@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.graygate.data.model.DetectionEngine
 import com.graygate.data.model.ManualOverride
+import com.graygate.ui.theme.GateColorSide
 import com.graygate.util.PermissionUtil
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,9 +38,84 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
+    var showAccessibilityDisclosure by remember { mutableStateOf(false) }
 
     // Refresh permissions when screen opens
     LaunchedEffect(Unit) { onRefreshPermissions() }
+
+    // Prominent disclosure for accessibility service (Google Play policy)
+    if (showAccessibilityDisclosure) {
+        AlertDialog(
+            onDismissRequest = { showAccessibilityDisclosure = false },
+            title = { Text("Accessibility Service Disclosure") },
+            text = {
+                Column {
+                    Text(
+                        "GrayGate's \"Fast Mode\" uses Android's Accessibility Service to detect " +
+                        "which app is currently in the foreground. This enables near-instant " +
+                        "grayscale switching (~100ms) compared to the standard method."
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Data accessed:",
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "• The package name of the current foreground app " +
+                        "(via TYPE_WINDOW_STATE_CHANGED events)"
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "How this data is used:",
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "• The package name is compared against your selected app list to " +
+                        "determine whether to enable or disable grayscale. It is not stored, " +
+                        "logged, or used for any other purpose."
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "This service does NOT:",
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "• Read or collect any screen content\n" +
+                        "• Access text, images, or personal data\n" +
+                        "• Send any data off your device\n" +
+                        "• Share any data with third parties"
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "By tapping \"I Agree\" you consent to GrayGate using the " +
+                        "Accessibility Service as described above.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    showAccessibilityDisclosure = false
+                    onDetectionEngineChange(DetectionEngine.ACCESSIBILITY)
+                    // Auto-open Accessibility Settings so the user can finish enabling
+                    context.startActivity(PermissionUtil.accessibilityIntent())
+                    Toast.makeText(
+                        context,
+                        "Find \"GrayGate\" in the list and turn it ON",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }) {
+                    Text("I Agree & Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAccessibilityDisclosure = false }) {
+                    Text("Decline")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -48,7 +125,12 @@ fun SettingsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
             )
         }
     ) { padding ->
@@ -72,7 +154,11 @@ fun SettingsScreen(
                 title = "Fast (Accessibility)",
                 description = "Event-driven detection with ~100ms latency. Requires enabling GrayGate in Settings > Accessibility.",
                 isSelected = detectionEngine == DetectionEngine.ACCESSIBILITY,
-                onClick = { onDetectionEngineChange(DetectionEngine.ACCESSIBILITY) }
+                onClick = {
+                    if (detectionEngine != DetectionEngine.ACCESSIBILITY) {
+                        showAccessibilityDisclosure = true
+                    }
+                }
             )
 
             if (detectionEngine == DetectionEngine.ACCESSIBILITY) {
@@ -173,7 +259,7 @@ fun SettingsScreen(
             SectionHeader("About")
 
             ListItem(
-                headlineContent = { Text("GrayGate v1.0.0") },
+                headlineContent = { Text("GrayGate v1.1.0") },
                 supportingContent = { Text("Per-app grayscale for Android") },
                 leadingContent = {
                     Icon(Icons.Filled.Info, contentDescription = null)
@@ -223,17 +309,22 @@ private fun DetectionOptionCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
-        border = if (isSelected) CardDefaults.outlinedCardBorder() else null
+        border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            RadioButton(selected = isSelected, onClick = onClick)
+            RadioButton(
+                selected = isSelected,
+                onClick = onClick,
+                colors = RadioButtonDefaults.colors(selectedColor = GateColorSide)
+            )
             Spacer(Modifier.width(12.dp))
             Column {
                 Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
@@ -257,7 +348,7 @@ private fun PermissionStatusRow(
                 Icon(
                     Icons.Filled.CheckCircle,
                     contentDescription = "Granted",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = GateColorSide
                 )
             } else {
                 TextButton(onClick = onFix) {
@@ -269,7 +360,7 @@ private fun PermissionStatusRow(
             Icon(
                 if (isGranted) Icons.Filled.VerifiedUser else Icons.Filled.Warning,
                 contentDescription = null,
-                tint = if (isGranted) MaterialTheme.colorScheme.primary
+                tint = if (isGranted) GateColorSide
                        else MaterialTheme.colorScheme.error
             )
         }

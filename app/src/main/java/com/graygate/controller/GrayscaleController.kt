@@ -44,8 +44,10 @@ object GrayscaleController {
         "com.samsung.android.honeyboard",   // Samsung Keyboard
         "com.swiftkey.swiftkey",            // SwiftKey
         "com.android.incallui",             // Incoming call UI
-        "com.android.dialer",              // Phone app during calls
+        "com.android.dialer",               // Phone app during calls
         "com.google.android.dialer",
+        "com.android.settings",             // System settings (e.g., Accessibility page)
+        "com.google.android.gms",           // Google Play Services overlays
     )
 
     // State tracking
@@ -156,6 +158,17 @@ object GrayscaleController {
     fun forceColorMode(context: Context) {
         setGrayscale(context.contentResolver, false)
         currentGrayscaleState = false
+        lastForegroundPackage = ""
+        lastToggleTime = 0L
+    }
+
+    /**
+     * Reset internal state when switching detection modes so the next
+     * foreground event is processed cleanly without stale tracking data.
+     */
+    fun resetState(context: Context) {
+        Log.d(TAG, "Resetting controller state")
+        forceColorMode(context)
     }
 
     /**

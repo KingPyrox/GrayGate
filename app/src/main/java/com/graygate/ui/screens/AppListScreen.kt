@@ -11,6 +11,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -19,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.graygate.data.model.AppInfo
 import com.graygate.data.model.GrayscaleMode
+import com.graygate.ui.theme.GateColorSide
+import com.graygate.ui.theme.GateGraySide
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,15 +52,26 @@ fun AppListScreen(
                                 if (grayscaleMode == GrayscaleMode.BLACKLIST) "Blacklist" else "Whitelist"
                             }",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
                 actions = {
                     // Master enable/disable toggle
                     Switch(
                         checked = isEnabled,
                         onCheckedChange = onEnabledChange,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = GateColorSide,
+                            checkedTrackColor = GateColorSide.copy(alpha = 0.3f),
+                            uncheckedThumbColor = GateGraySide,
+                            uncheckedTrackColor = GateGraySide.copy(alpha = 0.2f),
+                        ),
                         modifier = Modifier.padding(end = 4.dp)
                     )
                     IconButton(onClick = onNavigateToSettings) {
@@ -71,13 +87,13 @@ fun AppListScreen(
                 .padding(padding)
         ) {
             // Search bar
-            OutlinedTextField(
+            TextField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Search apps…") },
+                placeholder = { Text("Search apps\u2026") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
@@ -87,7 +103,13 @@ fun AppListScreen(
                     }
                 },
                 singleLine = true,
-                shape = MaterialTheme.shapes.large
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                )
             )
 
             // Mode selector chip
@@ -101,6 +123,10 @@ fun AppListScreen(
                     selected = grayscaleMode == GrayscaleMode.BLACKLIST,
                     onClick = { onModeChange(GrayscaleMode.BLACKLIST) },
                     label = { Text("Blacklist") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
                     leadingIcon = if (grayscaleMode == GrayscaleMode.BLACKLIST) {{
                         Icon(Icons.Filled.Check, contentDescription = null, Modifier.size(18.dp))
                     }} else null
@@ -109,6 +135,10 @@ fun AppListScreen(
                     selected = grayscaleMode == GrayscaleMode.WHITELIST,
                     onClick = { onModeChange(GrayscaleMode.WHITELIST) },
                     label = { Text("Whitelist") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
                     leadingIcon = if (grayscaleMode == GrayscaleMode.WHITELIST) {{
                         Icon(Icons.Filled.Check, contentDescription = null, Modifier.size(18.dp))
                     }} else null
@@ -185,6 +215,8 @@ private fun AppListItem(
         }
     }
 
+    val grayscaleFilter = remember { ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }) }
+
     ListItem(
         headlineContent = {
             Text(
@@ -208,20 +240,28 @@ private fun AppListItem(
                 Image(
                     bitmap = icon.toBitmap(48, 48).asImageBitmap(),
                     contentDescription = app.appName,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(40.dp),
+                    colorFilter = if (app.isSelected) grayscaleFilter else null
                 )
             } else {
                 Icon(
                     Icons.Filled.Android,
                     contentDescription = null,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(40.dp),
+                    tint = if (app.isSelected) GateGraySide else LocalContentColor.current
                 )
             }
         },
         trailingContent = {
             Switch(
                 checked = app.isSelected,
-                onCheckedChange = { onToggle() }
+                onCheckedChange = { onToggle() },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = GateColorSide,
+                    checkedTrackColor = GateColorSide.copy(alpha = 0.3f),
+                    uncheckedThumbColor = GateGraySide,
+                    uncheckedTrackColor = GateGraySide.copy(alpha = 0.2f),
+                )
             )
         },
         modifier = Modifier.fillMaxWidth()

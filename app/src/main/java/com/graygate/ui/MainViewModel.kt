@@ -161,6 +161,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             settingsRepo.setDetectionEngine(engine)
             val ctx = getApplication<Application>()
+            // Reset controller state so we don't carry over stale tracking
+            // (e.g., daltonizer stuck ON from previous mode).
+            GrayscaleController.resetState(ctx)
             // Start/stop appropriate service
             when (engine) {
                 DetectionEngine.USAGE_STATS -> {
@@ -199,8 +202,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startService() {
         val ctx = getApplication<Application>()
-        if (detectionEngine.value == DetectionEngine.USAGE_STATS) {
-            UsageStatsDetectionService.start(ctx)
+        when (detectionEngine.value) {
+            DetectionEngine.USAGE_STATS -> {
+                UsageStatsDetectionService.start(ctx)
+            }
+            DetectionEngine.ACCESSIBILITY -> {
+                // The system rebinds enabled accessibility services automatically.
+                // Ensure UsageStats isn't lingering from a previous mode.
+                UsageStatsDetectionService.stop(ctx)
+            }
         }
     }
 

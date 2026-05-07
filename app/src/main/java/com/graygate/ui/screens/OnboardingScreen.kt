@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -14,12 +15,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.graygate.ui.theme.BrandDarkSlate
+import com.graygate.ui.theme.GateColorSide
 import com.graygate.util.PermissionUtil
 import kotlinx.coroutines.launch
 
@@ -88,6 +94,14 @@ fun OnboardingScreen(
                 }
             ),
             OnboardingStep(
+                icon = Icons.Filled.Accessibility,
+                title = "Optional: Fast Mode (Accessibility)",
+                description = "GrayGate offers an OPTIONAL Fast Mode that uses Android's Accessibility Service to detect app changes with ~100ms latency.\n\nThe service ONLY reads the package name of the foreground app. It does NOT read screen content, text, images, or any personal data. No data leaves your device.\n\nFast Mode is OFF by default. You can enable it later in Settings — a full disclosure and consent prompt will appear at that time.\n\nThe app works fully without it.",
+                actionLabel = null,
+                isComplete = { true },
+                onAction = null
+            ),
+            OnboardingStep(
                 icon = Icons.Filled.CheckCircle,
                 title = "You're All Set!",
                 description = "GrayGate is ready to go. Head to the app list to choose which apps should appear in grayscale.\n\nYou can always change your settings later.",
@@ -105,7 +119,9 @@ fun OnboardingScreen(
         onRefreshPermissions()
     }
 
-    Scaffold { padding ->
+    Scaffold(
+        containerColor = BrandDarkSlate
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -116,8 +132,11 @@ fun OnboardingScreen(
                 progress = { (pagerState.currentPage + 1).toFloat() / steps.size },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = GateColorSide,
+                trackColor = Color.White.copy(alpha = 0.15f),
             )
 
             HorizontalPager(
@@ -151,7 +170,7 @@ fun OnboardingScreen(
                     TextButton(onClick = {
                         scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
                     }) {
-                        Text("Back")
+                        Text("Back", color = Color.White.copy(alpha = 0.6f))
                     }
                 } else {
                     Spacer(Modifier.width(1.dp))
@@ -163,9 +182,9 @@ fun OnboardingScreen(
                         val isActive = index == pagerState.currentPage
                         Surface(
                             modifier = Modifier.size(if (isActive) 10.dp else 8.dp),
-                            shape = MaterialTheme.shapes.small,
-                            color = if (isActive) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                            shape = CircleShape,
+                            color = if (isActive) GateColorSide
+                                    else Color.White.copy(alpha = 0.3f)
                         ) {}
                     }
                 }
@@ -174,7 +193,7 @@ fun OnboardingScreen(
                     TextButton(onClick = {
                         scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                     }) {
-                        Text("Next")
+                        Text("Next", color = Color.White)
                     }
                 } else {
                     Spacer(Modifier.width(1.dp))
@@ -202,8 +221,8 @@ private fun OnboardingPage(
             imageVector = step.icon,
             contentDescription = null,
             modifier = Modifier.size(72.dp),
-            tint = if (step.isComplete()) MaterialTheme.colorScheme.primary
-                   else MaterialTheme.colorScheme.onSurfaceVariant
+            tint = if (step.isComplete()) GateColorSide
+                   else Color.White.copy(alpha = 0.5f)
         )
 
         Spacer(Modifier.height(24.dp))
@@ -212,7 +231,8 @@ private fun OnboardingPage(
             text = step.title,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            color = Color.White
         )
 
         Spacer(Modifier.height(16.dp))
@@ -221,7 +241,7 @@ private fun OnboardingPage(
             text = step.description,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = Color.White.copy(alpha = 0.75f)
         )
 
         // Show ADB command box on the ADB step
@@ -230,15 +250,14 @@ private fun OnboardingPage(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                tonalElevation = 2.dp
+                color = Color.Black.copy(alpha = 0.3f),
             ) {
                 Text(
                     text = adbCommand,
                     modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodySmall,
                     fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = GateColorSide
                 )
             }
         }
@@ -254,11 +273,14 @@ private fun OnboardingPage(
                     .height(52.dp),
                 colors = if (step.isComplete() && !isLastPage) {
                     ButtonDefaults.buttonColors(
-                        disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        disabledContainerColor = GateColorSide.copy(alpha = 0.3f),
+                        disabledContentColor = Color.White.copy(alpha = 0.7f)
                     )
                 } else {
-                    ButtonDefaults.buttonColors()
+                    ButtonDefaults.buttonColors(
+                        containerColor = GateColorSide,
+                        contentColor = BrandDarkSlate
+                    )
                 }
             ) {
                 Text(step.actionLabel, style = MaterialTheme.typography.labelLarge)

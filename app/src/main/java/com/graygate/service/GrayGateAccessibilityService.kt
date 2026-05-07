@@ -39,13 +39,17 @@ class GrayGateAccessibilityService : AccessibilityService() {
         val packageName = event.packageName?.toString() ?: return
         val className = event.className?.toString()
 
-        // Validate that the class is an actual Activity, not a popup/overlay/dialog.
-        // This prevents flickering from transient system UI elements.
-        if (className != null && !isActivityClass(packageName, className)) {
-            Log.d(TAG, "Ignoring non-Activity: $packageName / $className")
+        // Filter out clearly transient UI elements (dialogs, popups, toasts).
+        // We do NOT require the class to be a registered Activity — many legitimate
+        // foreground destinations (launchers, system UI, browsers) use classes that
+        // aren't strictly Activities. Filtering on Activity-only would leave the
+        // daltonizer stuck on when leaving a selected app.
+        if (className != null && isTransientWindowClass(className)) {
+            Log.d(TAG, "Ignoring transient window: $packageName / $className")
             return
         }
 
+        Log.d(TAG, "Window changed: $packageName / $className")
         GrayscaleController.onForegroundAppChanged(packageName, this)
     }
 
@@ -61,21 +65,17 @@ class GrayGateAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Verify that the className from the accessibility event corresponds
-     * to an actual Activity registered in the target app's manifest.
-     * This filters out popups, input methods, overlays, and system dialogs
-     * that would otherwise cause flickering.
+     * Heuristic: identify clearly transient window classes (dialogs, popups,
+     * toasts, input method UI) so we ignore them. Everything else — including
+     * launchers, browsers, fragments, and unregistered Activity classes — is
+     * treated as a real foreground change.
      */
-    private fun isActivityClass(packageName: String, className: String): Boolean {
-        return try {
-            val componentName = ComponentName(packageName, className)
-            packageManager.getActivityInfo(componentName, PackageManager.GET_META_DATA)
-            true
-        } catch (e: PackageManager.NameNotFoundException) {
-            false
-        } catch (e: Exception) {
-            // If we can't determine, assume it's valid to avoid suppressing real events
-            true
-        }
+    private fun isTransientWindowClass(className: String): Boolean {
+        val lower = className.lowercase()
+        return lower.contains("dialog") ||
+                lower.contains("popup") ||
+                lower.contains("toast") ||
+                lower.endsWith("inputmethodservice") ||
+                lower.endsWith("inputmethod")
     }
 }
