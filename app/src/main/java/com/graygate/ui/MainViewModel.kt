@@ -2,7 +2,6 @@ package com.graygate.ui
 
 import android.app.Application
 import android.content.Intent
-import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -27,25 +26,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val grayscaleMode = settingsRepo.grayscaleMode.stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5000), GrayscaleMode.BLACKLIST
     )
-    val detectionEngine = settingsRepo.detectionEngine.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5000), DetectionEngine.USAGE_STATS
-    )
     val manualOverride = settingsRepo.manualOverride.stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5000), ManualOverride.AUTO
     )
     val isEnabled = settingsRepo.isEnabled.stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5000), true
     )
-    val isOnboardingComplete = settingsRepo.isOnboardingComplete.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5000), false
+    // null until DataStore has emitted — lets the UI wait instead of
+    // flashing the onboarding flow at returning users.
+    val isOnboardingComplete: StateFlow<Boolean?> = settingsRepo.isOnboardingComplete.stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(5000), null
     )
 
     // --- App list ---
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
-
-    private val _showSystemApps = MutableStateFlow(true)
-    val showSystemApps: StateFlow<Boolean> = _showSystemApps
 
     private val _installedApps = MutableStateFlow<List<AppInfo>>(emptyList())
 
@@ -63,15 +58,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val appList: StateFlow<List<AppInfo>> = combine(
         _installedApps,
         selectedPackages,
-        _searchQuery,
-        _showSystemApps
-    ) { apps, selected, query, showSystem ->
+        _searchQuery
+    ) { apps, selected, query ->
         val selectedSet = selected.toSet()
         apps
-            .filter { app ->
-                if (!showSystem && isSystemApp(app.packageName)) false
-                else true
-            }
             .map { it.copy(isSelected = it.packageName in selectedSet) }
             .filter { app ->
                 if (query.isBlank()) true
@@ -80,7 +70,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // --- Permission states (manually refreshed) ---
+    // --- Permission states (refreshed on resume) ---
     private val _hasUsageStats = MutableStateFlow(false)
     val hasUsageStats: StateFlow<Boolean> = _hasUsageStats
 
@@ -90,18 +80,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _hasBatteryExempt = MutableStateFlow(false)
     val hasBatteryExempt: StateFlow<Boolean> = _hasBatteryExempt
 
+    private val _hasNotifications = MutableStateFlow(false)
+    val hasNotifications: StateFlow<Boolean> = _hasNotifications
+
     init {
         loadInstalledApps()
         refreshPermissions()
-        // Keep GrayscaleController in sync with settings
-        viewModelScope.launch {
-            combine(selectedPackages, grayscaleMode, manualOverride, isEnabled) { pkgs, mode, ovr, enabled ->
-                GrayscaleController.selectedPackages = pkgs.toSet()
-                GrayscaleController.mode = mode
-                GrayscaleController.override = ovr
-                GrayscaleController.isEnabled = enabled
-            }.collect()
-        }
     }
 
     fun loadInstalledApps() {
@@ -133,6 +117,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _hasUsageStats.value = PermissionUtil.hasUsageStatsPermission(ctx)
         _hasWriteSecure.value = PermissionUtil.hasWriteSecureSettings(ctx)
         _hasBatteryExempt.value = PermissionUtil.isBatteryOptimizationDisabled(ctx)
+        _hasNotifications.value = PermissionUtil.hasNotificationPermission(ctx)
     }
 
     fun toggleAppSelection(appInfo: AppInfo) {
@@ -149,36 +134,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _searchQuery.value = query
     }
 
-    fun setShowSystemApps(show: Boolean) {
-        _showSystemApps.value = show
-    }
-
     fun setGrayscaleMode(mode: GrayscaleMode) {
         viewModelScope.launch { settingsRepo.setGrayscaleMode(mode) }
     }
 
-    fun setDetectionEngine(engine: DetectionEngine) {
-        viewModelScope.launch {
-            settingsRepo.setDetectionEngine(engine)
-            val ctx = getApplication<Application>()
-            // Reset controller state so we don't carry over stale tracking
-            // (e.g., daltonizer stuck ON from previous mode).
-            GrayscaleController.resetState(ctx)
-            // Start/stop appropriate service
-            when (engine) {
-                DetectionEngine.USAGE_STATS -> {
-                    UsageStatsDetectionService.start(ctx)
-                }
-                DetectionEngine.ACCESSIBILITY -> {
-                    UsageStatsDetectionService.stop(ctx)
-                    // User must enable accessibility service manually
-                }
-            }
-        }
-    }
-
     fun setManualOverride(override: ManualOverride) {
-        viewModelScope.launch { settingsRepo.setManualOverride(override) }
+        viewModelScope.launch {
+            settingsRepo.setManualOverride(override)
+            // Apply immediately rather than waiting for the next poll
+            GrayscaleController.applyOverride(getApplication(), override)
+        }
     }
 
     fun setEnabled(enabled: Boolean) {
@@ -189,9 +154,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 GrayscaleController.forceColorMode(ctx)
                 UsageStatsDetectionService.stop(ctx)
             } else {
-                if (detectionEngine.value == DetectionEngine.USAGE_STATS) {
-                    UsageStatsDetectionService.start(ctx)
-                }
+                UsageStatsDetectionService.start(ctx)
             }
         }
     }
@@ -201,25 +164,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startService() {
-        val ctx = getApplication<Application>()
-        when (detectionEngine.value) {
-            DetectionEngine.USAGE_STATS -> {
-                UsageStatsDetectionService.start(ctx)
-            }
-            DetectionEngine.ACCESSIBILITY -> {
-                // The system rebinds enabled accessibility services automatically.
-                // Ensure UsageStats isn't lingering from a previous mode.
-                UsageStatsDetectionService.stop(ctx)
-            }
-        }
-    }
-
-    private fun isSystemApp(packageName: String): Boolean {
-        return try {
-            val appInfo = pm.getApplicationInfo(packageName, 0)
-            (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-        } catch (e: Exception) {
-            false
-        }
+        UsageStatsDetectionService.start(getApplication())
     }
 }

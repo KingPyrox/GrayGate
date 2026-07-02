@@ -3,12 +3,16 @@ package com.graygate.service
 import android.app.*
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.graygate.R
 import com.graygate.controller.GrayscaleController
 import com.graygate.ui.MainActivity
@@ -16,9 +20,8 @@ import kotlinx.coroutines.*
 
 /**
  * Foreground service that polls UsageStatsManager every 1.5 seconds
- * to detect the current foreground app. This is the "Standard" detection
- * mode — slower than AccessibilityService but doesn't require enabling
- * an accessibility service, making it safer for Play Store distribution.
+ * to detect the current foreground app. Polling is paused while the
+ * screen is off to avoid needless battery drain.
  */
 class UsageStatsDetectionService : Service() {
 
@@ -43,18 +46,42 @@ class UsageStatsDetectionService : Service() {
     }
 
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-    private var isPolling = false
+    private var pollJob: Job? = null
+
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_OFF -> {
+                    Log.d(TAG, "Screen off — pausing polling")
+                    stopPolling()
+                }
+                Intent.ACTION_SCREEN_ON -> {
+                    Log.d(TAG, "Screen on — resuming polling")
+                    startPolling()
+                }
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification())
+        ContextCompat.registerReceiver(
+            this,
+            screenReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_SCREEN_ON)
+            },
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
         Log.d(TAG, "Service created")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (!isPolling) {
-            isPolling = true
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        if (powerManager.isInteractive) {
             startPolling()
         }
         return START_STICKY
@@ -64,21 +91,22 @@ class UsageStatsDetectionService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        isPolling = false
+        unregisterReceiver(screenReceiver)
         serviceScope.cancel()
         GrayscaleController.forceColorMode(this)
         Log.d(TAG, "Service destroyed — grayscale disabled")
     }
 
     private fun startPolling() {
-        serviceScope.launch {
+        if (pollJob?.isActive == true) return
+        pollJob = serviceScope.launch {
             val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             if (usageStatsManager == null) {
                 Log.e(TAG, "UsageStatsManager not available")
                 return@launch
             }
 
-            while (isActive && isPolling) {
+            while (isActive) {
                 try {
                     val foregroundPackage = getCurrentForegroundPackage(usageStatsManager)
                     if (foregroundPackage != null) {
@@ -92,8 +120,13 @@ class UsageStatsDetectionService : Service() {
         }
     }
 
+    private fun stopPolling() {
+        pollJob?.cancel()
+        pollJob = null
+    }
+
     /**
-     * Query UsageStatsManager for the most recent MOVE_TO_FOREGROUND event
+     * Query UsageStatsManager for the most recent app-resume event
      * within the last 5 seconds to determine the current foreground app.
      */
     private fun getCurrentForegroundPackage(usageStatsManager: UsageStatsManager): String? {
@@ -105,7 +138,7 @@ class UsageStatsDetectionService : Service() {
 
         while (events.hasNextEvent()) {
             events.getNextEvent(event)
-            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+            if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
                 if (event.timeStamp > latestTime) {
                     latestTime = event.timeStamp
                     latestPackage = event.packageName

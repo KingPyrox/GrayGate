@@ -20,8 +20,8 @@ android {
         applicationId = "com.graygate"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.1.5"
+        versionCode = 11
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -29,12 +29,19 @@ android {
         }
     }
 
+    // Only wire up release signing when the keystore properties are present —
+    // machines without the secrets can still run debug builds and tests.
+    val releaseStoreFile = localProps.getProperty("RELEASE_STORE_FILE")
+    val hasReleaseSigning = !releaseStoreFile.isNullOrBlank()
+
     signingConfigs {
-        create("release") {
-            storeFile = file(localProps.getProperty("RELEASE_STORE_FILE") ?: "")
-            storePassword = localProps.getProperty("RELEASE_STORE_PASSWORD") ?: ""
-            keyAlias = localProps.getProperty("RELEASE_KEY_ALIAS") ?: ""
-            keyPassword = localProps.getProperty("RELEASE_KEY_PASSWORD") ?: ""
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = localProps.getProperty("RELEASE_STORE_PASSWORD") ?: ""
+                keyAlias = localProps.getProperty("RELEASE_KEY_ALIAS") ?: ""
+                keyPassword = localProps.getProperty("RELEASE_KEY_PASSWORD") ?: ""
+            }
         }
     }
 
@@ -42,7 +49,9 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -105,9 +114,6 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-
-    // Coil (for app icons)
-    implementation("io.coil-kt:coil-compose:2.5.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

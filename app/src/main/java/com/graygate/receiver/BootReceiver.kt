@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import com.graygate.data.model.DetectionEngine
 import com.graygate.data.repository.SettingsRepository
 import com.graygate.service.UsageStatsDetectionService
 import kotlinx.coroutines.*
@@ -12,8 +11,6 @@ import kotlinx.coroutines.flow.first
 
 /**
  * Restarts the detection service after device boot.
- * Only starts the UsageStats service — the AccessibilityService
- * is automatically restarted by the system if it was enabled.
  */
 class BootReceiver : BroadcastReceiver() {
 
@@ -30,13 +27,12 @@ class BootReceiver : BroadcastReceiver() {
             try {
                 val repo = SettingsRepository(context)
                 val isEnabled = repo.isEnabled.first()
-                val engine = repo.detectionEngine.first()
+                val onboardingComplete = repo.isOnboardingComplete.first()
 
-                if (isEnabled && engine == DetectionEngine.USAGE_STATS) {
+                if (isEnabled && onboardingComplete) {
                     UsageStatsDetectionService.start(context)
-                    Log.d("BootReceiver", "UsageStats detection service started")
+                    Log.d("BootReceiver", "Detection service started")
                 }
-                // AccessibilityService restarts automatically if user enabled it
             } catch (e: Exception) {
                 Log.e("BootReceiver", "Error starting service on boot", e)
             } finally {

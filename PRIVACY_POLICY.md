@@ -1,6 +1,6 @@
 # Privacy Policy — GrayGate
 
-**Last updated:** April 5, 2026
+**Last updated:** July 2, 2026
 
 ## Overview
 
@@ -21,7 +21,7 @@ GrayGate is a local-only Android application. It does not collect, store, or tra
 GrayGate stores the following data **locally on your device only**:
 
 - **Selected apps list:** The apps you choose to apply grayscale to, stored in a local database
-- **App preferences:** Your settings (grayscale mode, detection engine, manual override), stored in local preferences
+- **App preferences:** Your settings (grayscale mode, manual override), stored in local preferences
 
 This data never leaves your device and is deleted when you uninstall the app.
 

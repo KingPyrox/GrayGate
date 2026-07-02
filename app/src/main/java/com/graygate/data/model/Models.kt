@@ -15,11 +15,6 @@ enum class GrayscaleMode {
     WHITELIST   // Everything EXCEPT selected apps is grayscaled
 }
 
-enum class DetectionEngine {
-    USAGE_STATS,    // Polling-based, slower but safer
-    ACCESSIBILITY   // Event-driven, fast but needs accessibility service
-}
-
 enum class ManualOverride {
     AUTO,           // Follow per-app rules
     FORCE_GRAY,     // Force grayscale on everything

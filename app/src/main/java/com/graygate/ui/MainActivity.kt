@@ -5,6 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,12 +29,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    override fun onResume() {
-        super.onResume()
-        // Permissions may have changed while we were in Settings
-        // The ViewModel will refresh when the composable re-collects
-    }
 }
 
 @Composable
@@ -43,20 +40,38 @@ fun GrayGateApp(viewModel: MainViewModel = viewModel()) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedCount by viewModel.selectedCount.collectAsState()
     val grayscaleMode by viewModel.grayscaleMode.collectAsState()
-    val detectionEngine by viewModel.detectionEngine.collectAsState()
     val manualOverride by viewModel.manualOverride.collectAsState()
     val isEnabled by viewModel.isEnabled.collectAsState()
     val hasUsageStats by viewModel.hasUsageStats.collectAsState()
     val hasWriteSecure by viewModel.hasWriteSecure.collectAsState()
     val hasBatteryExempt by viewModel.hasBatteryExempt.collectAsState()
+    val hasNotifications by viewModel.hasNotifications.collectAsState()
 
-    val startDestination = if (isOnboardingComplete) "app_list" else "onboarding"
+    // Permission states can change while the user is away in system Settings —
+    // re-check them every time the activity returns to the foreground.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshPermissions()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Wait for DataStore before choosing the start destination — otherwise
+    // returning users see the onboarding flow flash before the real value
+    // arrives.
+    val onboardingComplete = isOnboardingComplete ?: return
+
+    val startDestination = if (onboardingComplete) "app_list" else "onboarding"
 
     // Ensure the detection service is running whenever the app is launched
     // and onboarding is complete. Settings persist via DataStore, but the
     // service itself needs to be (re)started after process death or reboot.
-    LaunchedEffect(isOnboardingComplete, detectionEngine, isEnabled) {
-        if (isOnboardingComplete && isEnabled) {
+    LaunchedEffect(onboardingComplete, isEnabled) {
+        if (onboardingComplete && isEnabled) {
             viewModel.startService()
         }
     }
@@ -68,6 +83,7 @@ fun GrayGateApp(viewModel: MainViewModel = viewModel()) {
                 hasUsageStats = hasUsageStats,
                 hasWriteSecure = hasWriteSecure,
                 hasBatteryExempt = hasBatteryExempt,
+                hasNotifications = hasNotifications,
                 onRefreshPermissions = { viewModel.refreshPermissions() },
                 onComplete = {
                     viewModel.completeOnboarding()
@@ -99,12 +115,11 @@ fun GrayGateApp(viewModel: MainViewModel = viewModel()) {
 
         composable("settings") {
             SettingsScreen(
-                detectionEngine = detectionEngine,
                 manualOverride = manualOverride,
                 hasUsageStats = hasUsageStats,
                 hasWriteSecure = hasWriteSecure,
                 hasBatteryExempt = hasBatteryExempt,
-                onDetectionEngineChange = { viewModel.setDetectionEngine(it) },
+                hasNotifications = hasNotifications,
                 onManualOverrideChange = { viewModel.setManualOverride(it) },
                 onRefreshPermissions = { viewModel.refreshPermissions() },
                 onNavigateBack = { navController.popBackStack() }

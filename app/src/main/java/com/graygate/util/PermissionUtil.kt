@@ -1,14 +1,14 @@
 package com.graygate.util
 
+import android.Manifest
 import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
-import com.graygate.controller.GrayscaleController
-import com.graygate.service.GrayGateAccessibilityService
 
 /**
  * Utility for checking and requesting the various permissions
@@ -22,11 +22,21 @@ object PermissionUtil {
      */
     fun hasUsageStatsPermission(context: Context): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        val mode = appOps.unsafeCheckOpNoThrow(
-            AppOpsManager.OPSTR_GET_USAGE_STATS,
-            android.os.Process.myUid(),
-            context.packageName
-        )
+        // unsafeCheckOpNoThrow only exists on API 29+
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                context.packageName
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                context.packageName
+            )
+        }
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
@@ -34,14 +44,17 @@ object PermissionUtil {
      * Check if WRITE_SECURE_SETTINGS has been granted (via ADB).
      */
     fun hasWriteSecureSettings(context: Context): Boolean {
-        return GrayscaleController.hasWriteSecureSettings(context)
+        return context.checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) ==
+                PackageManager.PERMISSION_GRANTED
     }
 
     /**
-     * Check if the AccessibilityService is currently enabled.
+     * Check if POST_NOTIFICATIONS has been granted (always true below API 33).
      */
-    fun isAccessibilityServiceEnabled(context: Context): Boolean {
-        return GrayGateAccessibilityService.isRunning
+    fun hasNotificationPermission(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
+        return context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
     }
 
     /**
@@ -60,10 +73,11 @@ object PermissionUtil {
     }
 
     /**
-     * Intent to open Accessibility settings.
+     * Intent to open this app's notification settings.
      */
-    fun accessibilityIntent(): Intent {
-        return Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+    fun notificationSettingsIntent(context: Context): Intent {
+        return Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
     }
 
     /**

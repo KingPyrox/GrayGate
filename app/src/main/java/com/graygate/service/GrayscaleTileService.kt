@@ -29,31 +29,14 @@ class GrayscaleTileService : TileService() {
         super.onClick()
         scope.launch {
             val repo = SettingsRepository(applicationContext)
-            val current = repo.manualOverride.first()
-
-            val next = when (current) {
+            val next = when (repo.manualOverride.first()) {
                 ManualOverride.AUTO -> ManualOverride.FORCE_GRAY
                 ManualOverride.FORCE_GRAY -> ManualOverride.FORCE_COLOR
                 ManualOverride.FORCE_COLOR -> ManualOverride.AUTO
             }
 
             repo.setManualOverride(next)
-            GrayscaleController.override = next
-
-            // Apply immediately
-            when (next) {
-                ManualOverride.FORCE_GRAY -> {
-                    GrayscaleController.override = ManualOverride.FORCE_GRAY
-                    GrayscaleController.onForegroundAppChanged("__force__", applicationContext)
-                }
-                ManualOverride.FORCE_COLOR -> {
-                    GrayscaleController.forceColorMode(applicationContext)
-                    GrayscaleController.override = ManualOverride.FORCE_COLOR
-                }
-                ManualOverride.AUTO -> {
-                    GrayscaleController.override = ManualOverride.AUTO
-                }
-            }
+            GrayscaleController.applyOverride(applicationContext, next)
 
             updateTileState()
         }

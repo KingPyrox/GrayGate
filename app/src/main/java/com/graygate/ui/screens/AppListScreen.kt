@@ -1,6 +1,5 @@
 package com.graygate.ui.screens
 
-import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -24,6 +24,8 @@ import com.graygate.data.model.AppInfo
 import com.graygate.data.model.GrayscaleMode
 import com.graygate.ui.theme.GateColorSide
 import com.graygate.ui.theme.GateGraySide
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -207,11 +209,18 @@ private fun AppListItem(
     onToggle: () -> Unit
 ) {
     val context = LocalContext.current
-    val icon: Drawable? = remember(app.packageName) {
-        try {
-            context.packageManager.getApplicationIcon(app.packageName)
-        } catch (e: Exception) {
-            null
+    // Load the icon off the main thread — getApplicationIcon is a binder
+    // call and toBitmap allocates; doing either during composition janks
+    // fast scrolling through the list.
+    val icon by produceState<ImageBitmap?>(initialValue = null, app.packageName) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                context.packageManager.getApplicationIcon(app.packageName)
+                    .toBitmap(96, 96)
+                    .asImageBitmap()
+            } catch (e: Exception) {
+                null
+            }
         }
     }
 
@@ -236,9 +245,10 @@ private fun AppListItem(
             )
         },
         leadingContent = {
-            if (icon != null) {
+            val iconBitmap = icon
+            if (iconBitmap != null) {
                 Image(
-                    bitmap = icon.toBitmap(48, 48).asImageBitmap(),
+                    bitmap = iconBitmap,
                     contentDescription = app.appName,
                     modifier = Modifier.size(40.dp),
                     colorFilter = if (app.isSelected) grayscaleFilter else null

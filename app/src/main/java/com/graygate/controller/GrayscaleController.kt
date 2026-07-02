@@ -1,7 +1,8 @@
 package com.graygate.controller
 
-import android.content.ContentResolver
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import com.graygate.data.model.GrayscaleMode
@@ -17,6 +18,15 @@ import com.graygate.data.model.ManualOverride
  * The daltonizer approach is the only viable method for non-root, non-system
  * apps to achieve grayscale on Android. It applies to the ENTIRE display
  * (status bar, nav bar, etc.), not just the target app's window.
+ *
+ * The user's pre-existing daltonizer values (e.g., a color-correction filter
+ * for color blindness) are saved before the first toggle and restored
+ * whenever grayscale is turned off, so GrayGate never clobbers them.
+ *
+ * Configuration fields are kept in sync with Room/DataStore by an
+ * application-scoped collector in [com.graygate.GrayGateApp], so they are
+ * correct in every process entry point (boot, tile, service restart) —
+ * not just when the UI is open.
  */
 object GrayscaleController {
 
@@ -26,162 +36,205 @@ object GrayscaleController {
     private const val DALTONIZER_ENABLED = "accessibility_display_daltonizer_enabled"
     private const val DALTONIZER_MODE = "accessibility_display_daltonizer"
 
-    // Daltonizer mode values
-    private const val DALTONIZER_GRAYSCALE = 0      // Monochromacy / full grayscale
-    private const val DALTONIZER_DISABLED = -1      // Normal color
+    // Daltonizer mode value for monochromacy / full grayscale
+    private const val DALTONIZER_GRAYSCALE = 0
+
+    // Where the user's original daltonizer values are persisted
+    private const val PREFS_NAME = "graygate_daltonizer"
+    private const val PREF_ORIGINAL_SAVED = "original_saved"
+    private const val PREF_ORIGINAL_ENABLED = "original_enabled"
+    private const val PREF_ORIGINAL_MODE = "original_mode"
 
     // Anti-flicker: minimum time between state changes
     private const val DEBOUNCE_MS = 1500L
 
-    // Packages that should NEVER trigger a grayscale toggle
-    private val IGNORED_PACKAGES = setOf(
-        "com.android.systemui",             // Status bar, volume panel, quick settings
-        "android",                          // System dialogs
-        "com.android.permissioncontroller", // Permission prompts
-        "com.android.shell",                // Shell / ADB
-        "com.android.inputmethod.latin",    // Google Keyboard
-        "com.google.android.inputmethod.latin",
-        "com.samsung.android.honeyboard",   // Samsung Keyboard
-        "com.swiftkey.swiftkey",            // SwiftKey
-        "com.android.incallui",             // Incoming call UI
-        "com.android.dialer",               // Phone app during calls
-        "com.google.android.dialer",
-        "com.android.settings",             // System settings (e.g., Accessibility page)
-        "com.google.android.gms",           // Google Play Services overlays
-    )
+    private val handler = Handler(Looper.getMainLooper())
+    private var pendingRecheck: Runnable? = null
 
-    // State tracking
+    // State tracking. currentGrayscaleState is lazily initialized from the
+    // real Settings.Secure values so a process restart can't leave the
+    // screen stuck gray with a cached "already color" assumption.
+    private var stateInitialized = false
     private var currentGrayscaleState: Boolean = false
     private var lastToggleTime: Long = 0L
     private var lastForegroundPackage: String = ""
 
-    // Configuration — updated by the app when settings change
+    // Configuration — synced from Room/DataStore by GrayGateApp
     @Volatile var mode: GrayscaleMode = GrayscaleMode.BLACKLIST
     @Volatile var override: ManualOverride = ManualOverride.AUTO
     @Volatile var selectedPackages: Set<String> = emptySet()
     @Volatile var isEnabled: Boolean = true
 
+    // True once the first config sync has completed. Until then, foreground
+    // events are ignored so a freshly started process can't act on defaults.
+    @Volatile var configLoaded: Boolean = false
+
     /**
      * Called by the detection service whenever the foreground app changes.
      */
+    @Synchronized
     fun onForegroundAppChanged(packageName: String, context: Context) {
-        if (!isEnabled) return
-        if (packageName.isBlank()) return
+        if (!configLoaded) return
         if (packageName == lastForegroundPackage) return
 
-        // Check ignore list
-        if (packageName in IGNORED_PACKAGES) {
-            Log.d(TAG, "Ignoring system package: $packageName")
-            return
-        }
-
-        // Ignore our own package
-        if (packageName == context.packageName) {
-            Log.d(TAG, "Ignoring self: $packageName")
-            return
-        }
+        val appContext = context.applicationContext
+        val shouldBeGray = GrayscaleRules.desiredState(
+            packageName = packageName,
+            selfPackageName = appContext.packageName,
+            isEnabled = isEnabled,
+            override = override,
+            mode = mode,
+            selectedPackages = selectedPackages
+        ) ?: return
 
         lastForegroundPackage = packageName
-
-        // Handle manual overrides
-        when (override) {
-            ManualOverride.FORCE_GRAY -> {
-                setGrayscaleIfChanged(context, true)
-                return
-            }
-            ManualOverride.FORCE_COLOR -> {
-                setGrayscaleIfChanged(context, false)
-                return
-            }
-            ManualOverride.AUTO -> { /* Continue to per-app logic */ }
-        }
-
-        // Determine desired state based on mode and selected packages
-        val shouldBeGray = when (mode) {
-            GrayscaleMode.BLACKLIST -> packageName in selectedPackages
-            GrayscaleMode.WHITELIST -> packageName !in selectedPackages
-        }
-
         Log.d(TAG, "App: $packageName | Mode: $mode | ShouldGray: $shouldBeGray")
 
         // Apply debounce
         val now = System.currentTimeMillis()
         if (now - lastToggleTime < DEBOUNCE_MS && shouldBeGray != currentGrayscaleState) {
             Log.d(TAG, "Debounced — skipping toggle (${now - lastToggleTime}ms since last)")
-            // Post a delayed re-check
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                if (lastForegroundPackage == packageName) {
-                    setGrayscaleIfChanged(context, shouldBeGray)
-                }
-            }, DEBOUNCE_MS - (now - lastToggleTime) + 50)
+            scheduleRecheck(appContext, packageName, DEBOUNCE_MS - (now - lastToggleTime) + 50)
             return
         }
 
-        setGrayscaleIfChanged(context, shouldBeGray)
+        setGrayscaleIfChanged(appContext, shouldBeGray)
+    }
+
+    /**
+     * Apply a manual override immediately (Quick Settings tile / Settings screen).
+     */
+    @Synchronized
+    fun applyOverride(context: Context, newOverride: ManualOverride) {
+        override = newOverride
+        cancelPendingRecheck()
+        when (newOverride) {
+            // Never gray the screen while the master toggle is off — nothing
+            // would be running to manage or revert it. Turning color ON is
+            // always safe.
+            ManualOverride.FORCE_GRAY -> {
+                if (isEnabled && configLoaded) setGrayscaleIfChanged(context.applicationContext, true)
+            }
+            ManualOverride.FORCE_COLOR -> setGrayscaleIfChanged(context.applicationContext, false)
+            // Clear the tracked package so the next poll re-evaluates the
+            // current foreground app against the per-app rules.
+            ManualOverride.AUTO -> lastForegroundPackage = ""
+        }
+    }
+
+    /**
+     * Force grayscale off — called when the service stops or the app is disabled.
+     * Restores the user's original daltonizer settings.
+     */
+    @Synchronized
+    fun forceColorMode(context: Context) {
+        cancelPendingRecheck()
+        ensureStateInitialized(context)
+        if (currentGrayscaleState) {
+            restoreOriginalSettings(context.applicationContext)
+        }
+        currentGrayscaleState = false
+        lastForegroundPackage = ""
+        lastToggleTime = 0L
+    }
+
+    // --- Internals ---
+
+    private fun scheduleRecheck(context: Context, packageName: String, delayMs: Long) {
+        cancelPendingRecheck()
+        val recheck = Runnable {
+            synchronized(this) {
+                // Re-evaluate against current config — settings or overrides
+                // may have changed during the debounce window.
+                if (lastForegroundPackage == packageName) {
+                    val desired = GrayscaleRules.desiredState(
+                        packageName, context.packageName, isEnabled, override, mode, selectedPackages
+                    )
+                    if (desired != null) setGrayscaleIfChanged(context, desired)
+                }
+            }
+        }
+        pendingRecheck = recheck
+        handler.postDelayed(recheck, delayMs)
+    }
+
+    private fun cancelPendingRecheck() {
+        pendingRecheck?.let { handler.removeCallbacks(it) }
+        pendingRecheck = null
     }
 
     /**
      * Only write to Settings.Secure if the state actually needs to change.
      */
     private fun setGrayscaleIfChanged(context: Context, enabled: Boolean) {
+        ensureStateInitialized(context)
         if (enabled == currentGrayscaleState) return
-        setGrayscale(context.contentResolver, enabled)
+        if (enabled) applyGrayscale(context) else restoreOriginalSettings(context)
         currentGrayscaleState = enabled
         lastToggleTime = System.currentTimeMillis()
         Log.d(TAG, "Grayscale ${if (enabled) "ON" else "OFF"}")
     }
 
     /**
-     * Write to Settings.Secure to toggle the daltonizer.
+     * Read the actual daltonizer state once per process so we never trust a
+     * stale in-memory assumption after the process was killed and restarted.
+     */
+    private fun ensureStateInitialized(context: Context) {
+        if (stateInitialized) return
+        stateInitialized = true
+        currentGrayscaleState = try {
+            val resolver = context.contentResolver
+            Settings.Secure.getInt(resolver, DALTONIZER_ENABLED, 0) == 1 &&
+                    Settings.Secure.getInt(resolver, DALTONIZER_MODE, -1) == DALTONIZER_GRAYSCALE
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Turn grayscale on, saving the user's pre-existing daltonizer values
+     * first so they can be restored (e.g., a color-correction filter).
      * Requires WRITE_SECURE_SETTINGS permission (granted via ADB).
      */
-    private fun setGrayscale(resolver: ContentResolver, enabled: Boolean) {
+    private fun applyGrayscale(context: Context) {
         try {
-            Settings.Secure.putInt(
-                resolver,
-                DALTONIZER_ENABLED,
-                if (enabled) 1 else 0
-            )
-            Settings.Secure.putInt(
-                resolver,
-                DALTONIZER_MODE,
-                if (enabled) DALTONIZER_GRAYSCALE else DALTONIZER_DISABLED
-            )
+            val resolver = context.contentResolver
+            val curEnabled = Settings.Secure.getInt(resolver, DALTONIZER_ENABLED, 0)
+            val curMode = Settings.Secure.getInt(resolver, DALTONIZER_MODE, -1)
+            if (!(curEnabled == 1 && curMode == DALTONIZER_GRAYSCALE)) {
+                prefs(context).edit()
+                    .putBoolean(PREF_ORIGINAL_SAVED, true)
+                    .putInt(PREF_ORIGINAL_ENABLED, curEnabled)
+                    .putInt(PREF_ORIGINAL_MODE, curMode)
+                    .apply()
+            }
+            Settings.Secure.putInt(resolver, DALTONIZER_ENABLED, 1)
+            Settings.Secure.putInt(resolver, DALTONIZER_MODE, DALTONIZER_GRAYSCALE)
         } catch (e: SecurityException) {
             Log.e(TAG, "WRITE_SECURE_SETTINGS not granted!", e)
         }
     }
 
     /**
-     * Force grayscale off — called when the service stops or app is paused.
+     * Restore whatever daltonizer configuration the user had before GrayGate
+     * first toggled grayscale. Falls back to simply disabling the daltonizer
+     * (without touching the mode) if nothing was ever saved.
      */
-    fun forceColorMode(context: Context) {
-        setGrayscale(context.contentResolver, false)
-        currentGrayscaleState = false
-        lastForegroundPackage = ""
-        lastToggleTime = 0L
-    }
-
-    /**
-     * Reset internal state when switching detection modes so the next
-     * foreground event is processed cleanly without stale tracking data.
-     */
-    fun resetState(context: Context) {
-        Log.d(TAG, "Resetting controller state")
-        forceColorMode(context)
-    }
-
-    /**
-     * Check if WRITE_SECURE_SETTINGS has been granted.
-     */
-    fun hasWriteSecureSettings(context: Context): Boolean {
-        return try {
-            // Try writing — if this doesn't throw, we have permission
-            val current = Settings.Secure.getInt(context.contentResolver, DALTONIZER_ENABLED, 0)
-            Settings.Secure.putInt(context.contentResolver, DALTONIZER_ENABLED, current)
-            true
-        } catch (e: Exception) {
-            false
+    private fun restoreOriginalSettings(context: Context) {
+        try {
+            val resolver = context.contentResolver
+            val p = prefs(context)
+            if (p.getBoolean(PREF_ORIGINAL_SAVED, false)) {
+                Settings.Secure.putInt(resolver, DALTONIZER_ENABLED, p.getInt(PREF_ORIGINAL_ENABLED, 0))
+                Settings.Secure.putInt(resolver, DALTONIZER_MODE, p.getInt(PREF_ORIGINAL_MODE, -1))
+            } else {
+                Settings.Secure.putInt(resolver, DALTONIZER_ENABLED, 0)
+            }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "WRITE_SECURE_SETTINGS not granted!", e)
         }
     }
+
+    private fun prefs(context: Context) =
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 }
