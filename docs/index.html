@@ -1,10 +1,676 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta http-equiv="refresh" content="0; url=privacy-policy.html">
-    <title>GrayGate</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrayGate — Your phone stays calm. Your camera stays colorful.</title>
+<meta name="description" content="GrayGate keeps your phone in grayscale and lets only the apps you actually need stay in full color. One 60-second setup, then never again.">
+
+<meta property="og:title" content="GrayGate — Your phone stays calm. Your camera stays colorful.">
+<meta property="og:description" content="Grayscale everything by default. Keep camera, maps, and photos in full color. One 60-second setup, then never again.">
+<meta property="og:type" content="website">
+
+<style>
+    :root {
+        --slate:      #37474F;
+        --slate-deep: #1C262B;
+        --accent:     #4FC3F7;
+        --gray-side:  #78909C;
+        --ink:        #16202b;
+        --ink-soft:   #5b6b7a;
+        --page:       #f7f9fa;
+        --card:       #ffffff;
+        --line:       #dfe6ea;
+        --radius:     14px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --ink:      #e8edf1;
+            --ink-soft: #9fb0bd;
+            --page:     #10171c;
+            --card:     #18232a;
+            --line:     #2a3942;
+        }
+    }
+    :root[data-theme="dark"] {
+        --ink:      #e8edf1;
+        --ink-soft: #9fb0bd;
+        --page:     #10171c;
+        --card:     #18232a;
+        --line:     #2a3942;
+    }
+    :root[data-theme="light"] {
+        --ink:      #16202b;
+        --ink-soft: #5b6b7a;
+        --page:     #f7f9fa;
+        --card:     #ffffff;
+        --line:     #dfe6ea;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.65;
+        color: var(--ink);
+        background: var(--page);
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+    }
+
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 0 1.25rem; }
+
+    /* ---------- Hero ---------- */
+    .hero {
+        background: linear-gradient(160deg, var(--slate) 0%, var(--slate-deep) 100%);
+        color: #fff;
+        padding: 4.5rem 0 4rem;
+        text-align: center;
+    }
+    .logo-mark {
+        width: 60px; height: 60px;
+        margin: 0 auto 1.5rem;
+        border-radius: 14px;
+        background: #4a5c7a;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+    }
+    .logo-mark svg { width: 34px; height: 34px; display: block; }
+
+    .hero h1 {
+        font-size: clamp(1.9rem, 5.2vw, 3rem);
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+    .hero h1 .calm  { color: var(--gray-side); }
+    .hero h1 .color { color: var(--accent); }
+
+    .hero .sub {
+        font-size: clamp(1rem, 2.4vw, 1.2rem);
+        color: rgba(255,255,255,0.78);
+        max-width: 40rem;
+        margin: 0 auto 1.25rem;
+    }
+
+    .badges {
+        display: flex; flex-wrap: wrap; gap: 0.5rem;
+        justify-content: center; margin-bottom: 2rem;
+    }
+    .badge {
+        font-size: 0.82rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.16);
+        color: rgba(255,255,255,0.9);
+    }
+
+    .cta-row { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
+    .btn {
+        display: inline-block;
+        padding: 0.85rem 1.7rem;
+        border-radius: 10px;
+        font-weight: 650;
+        font-size: 1rem;
+        text-decoration: none;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary { background: var(--accent); color: #10242e; }
+    .btn-ghost {
+        background: transparent; color: #fff;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    /* ---------- The gray/color demo ---------- */
+    .demo { padding: 3.5rem 0 1rem; }
+    .demo-head { text-align: center; margin-bottom: 1.75rem; }
+
+    .stage {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+        max-width: 720px;
+        margin: 0 auto;
+    }
+    .phone {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        text-align: center;
+    }
+    .phone img {
+        width: 100%; height: auto; display: block;
+        border-bottom: 1px solid var(--line);
+    }
+    .phone.is-gray img { filter: grayscale(1) contrast(0.97); }
+    .phone .label {
+        padding: 0.7rem 0.5rem;
+        font-size: 0.86rem;
+        font-weight: 650;
+    }
+    .phone.is-gray .label  { color: var(--gray-side); }
+    .phone.is-color .label { color: #2b8fc4; }
+    @media (prefers-color-scheme: dark) { .phone.is-color .label { color: var(--accent); } }
+    :root[data-theme="dark"] .phone.is-color .label { color: var(--accent); }
+
+    .stage-note {
+        text-align: center;
+        color: var(--ink-soft);
+        font-size: 0.9rem;
+        margin-top: 1rem;
+        max-width: 34rem;
+        margin-left: auto; margin-right: auto;
+    }
+
+    /* ---------- Setup — the conversion section ---------- */
+    .setup { padding: 4rem 0; }
+    .setup-card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: clamp(1.5rem, 4vw, 2.75rem);
+    }
+    .timer-pill {
+        display: inline-flex; align-items: center; gap: 0.45rem;
+        background: rgba(79,195,247,0.14);
+        border: 1px solid rgba(79,195,247,0.4);
+        color: #1c7fa8;
+        font-weight: 700; font-size: 0.85rem;
+        padding: 0.3rem 0.85rem; border-radius: 999px;
+        margin-bottom: 0.9rem;
+    }
+    @media (prefers-color-scheme: dark) { .timer-pill { color: var(--accent); } }
+    :root[data-theme="dark"] .timer-pill { color: var(--accent); }
+
+    h2 {
+        font-size: clamp(1.4rem, 3.4vw, 2rem);
+        letter-spacing: -0.015em;
+        line-height: 1.2;
+        margin-bottom: 0.6rem;
+        font-weight: 750;
+    }
+    .lede { color: var(--ink-soft); max-width: 44rem; margin-bottom: 1.75rem; }
+
+    .steps { display: grid; gap: 1rem; margin-bottom: 1.75rem; }
+    @media (min-width: 720px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+
+    .step {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1.1rem;
+        position: relative;
+    }
+    .step .num {
+        width: 26px; height: 26px; border-radius: 50%;
+        background: var(--slate); color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.82rem; font-weight: 700;
+        margin-bottom: 0.6rem;
+    }
+    .step h3 { font-size: 1rem; margin-bottom: 0.25rem; font-weight: 680; }
+    .step p  { font-size: 0.9rem; color: var(--ink-soft); }
+    .step .secs {
+        position: absolute; top: 1.1rem; right: 1.1rem;
+        font-size: 0.75rem; color: var(--ink-soft);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* command block */
+    .cmd-label {
+        font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em;
+        text-transform: uppercase; color: var(--ink-soft);
+        margin-bottom: 0.5rem;
+    }
+    .cmd {
+        display: flex; align-items: stretch; gap: 0;
+        background: #0f1a20;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #223038;
+    }
+    .cmd code {
+        flex: 1;
+        padding: 0.95rem 1rem;
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+        font-size: 0.83rem;
+        color: var(--accent);
+        overflow-x: auto;
+        white-space: nowrap;
+        line-height: 1.5;
+    }
+    .cmd button {
+        flex: 0 0 auto;
+        border: none; border-left: 1px solid #223038;
+        background: #16242c; color: #cfe8f5;
+        padding: 0 1.1rem;
+        font-size: 0.82rem; font-weight: 650;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .cmd button:hover { background: #1e333d; }
+    .cmd button.copied { background: var(--accent); color: #10242e; }
+
+    /* the gif slot */
+    .gif-slot {
+        margin-top: 1.5rem;
+        border: 1px dashed var(--line);
+        border-radius: var(--radius);
+        padding: 0;
+        overflow: hidden;
+        background: var(--page);
+    }
+    .gif-slot img { width: 100%; height: auto; display: block; }
+
+    /* Static stand-in shown until assets/setup.gif exists */
+    .gif-placeholder { background: #0f1a20; }
+    .term {
+        display: flex; align-items: center; gap: 0.4rem;
+        padding: 0.6rem 0.9rem;
+        border-bottom: 1px solid #223038;
+    }
+    .term .dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: #37474F; display: inline-block;
+    }
+    .term-title {
+        margin-left: 0.5rem; font-size: 0.78rem;
+        color: #6d8494;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .term-body {
+        margin: 0;
+        padding: 1rem;
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+        font-size: 0.78rem;
+        line-height: 1.7;
+        color: #b9ccd8;
+        overflow-x: auto;
+        white-space: pre;
+    }
+    .term-body .prompt { color: var(--gray-side); }
+    .term-body .done   { color: var(--accent); }
+
+    .gif-slot .cap {
+        padding: 0.7rem 1rem;
+        font-size: 0.85rem;
+        color: var(--ink-soft);
+        border-top: 1px solid var(--line);
+    }
+
+    .reassure {
+        margin-top: 1.5rem;
+        display: grid; gap: 0.6rem;
+    }
+    .reassure div {
+        font-size: 0.92rem; color: var(--ink-soft);
+        padding-left: 1.55rem; position: relative;
+    }
+    .reassure div::before {
+        content: "✓";
+        position: absolute; left: 0; top: 0;
+        color: #2b8fc4; font-weight: 800;
+    }
+    @media (prefers-color-scheme: dark) { .reassure div::before { color: var(--accent); } }
+    :root[data-theme="dark"] .reassure div::before { color: var(--accent); }
+
+    /* ---------- Modes ---------- */
+    .modes { padding: 1rem 0 4rem; }
+    .mode-grid { display: grid; gap: 1.25rem; margin-top: 1.75rem; }
+    @media (min-width: 720px) { .mode-grid { grid-template-columns: 1fr 1fr; } }
+
+    .mode {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+    }
+    .mode.featured { border-color: var(--accent); border-width: 2px; }
+    .mode .tag {
+        display: inline-block;
+        font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 0.2rem 0.6rem; border-radius: 999px;
+        margin-bottom: 0.7rem;
+    }
+    .mode.featured .tag { background: var(--accent); color: #10242e; }
+    .mode.plain .tag   { background: var(--line); color: var(--ink-soft); }
+    .mode h3 { font-size: 1.15rem; margin-bottom: 0.4rem; font-weight: 700; }
+    .mode p  { color: var(--ink-soft); font-size: 0.95rem; }
+
+    /* ---------- Features / privacy ---------- */
+    .feat { padding: 0 0 4rem; }
+    .feat-grid { display: grid; gap: 1rem; margin-top: 1.5rem; }
+    @media (min-width: 620px) { .feat-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 900px) { .feat-grid { grid-template-columns: repeat(3, 1fr); } }
+    .feat-item {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1.15rem;
+    }
+    .feat-item h4 { font-size: 0.98rem; margin-bottom: 0.3rem; font-weight: 670; }
+    .feat-item p  { font-size: 0.89rem; color: var(--ink-soft); }
+
+    .privacy-band {
+        background: var(--slate);
+        color: #fff;
+        padding: 3rem 0;
+        text-align: center;
+    }
+    .privacy-band h2 { color: #fff; }
+    .privacy-band p { color: rgba(255,255,255,0.78); max-width: 38rem; margin: 0 auto 1.5rem; }
+    .privacy-list {
+        display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;
+        list-style: none;
+    }
+    .privacy-list li {
+        font-size: 0.85rem;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.16);
+        padding: 0.35rem 0.85rem; border-radius: 999px;
+    }
+
+    /* ---------- Honest limits ---------- */
+    .limits { padding: 3.5rem 0; }
+    .limits ul { margin: 1rem 0 0 1.2rem; color: var(--ink-soft); }
+    .limits li { margin-bottom: 0.5rem; font-size: 0.94rem; }
+
+    footer {
+        border-top: 1px solid var(--line);
+        padding: 2rem 0 3rem;
+        text-align: center;
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+    }
+    footer a { color: inherit; }
+    .foot-links { display: flex; gap: 1.25rem; justify-content: center; margin-bottom: 0.75rem; flex-wrap: wrap; }
+</style>
 </head>
 <body>
-    <p><a href="privacy-policy.html">Privacy Policy</a></p>
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+    <div class="wrap">
+        <div class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 100 100" role="img">
+                <rect width="100" height="100" fill="#4a5c7a"/>
+                <polygon points="20,12 44,12 44,88 20,88" fill="#ffffff" opacity="0.25"/>
+                <polygon points="56,12 80,88 56,88" fill="#ffffff"/>
+            </svg>
+        </div>
+
+        <h1>
+            Your phone stays <span class="calm">calm</span>.<br>
+            Your camera stays <span class="color">colorful</span>.
+        </h1>
+
+        <p class="sub">
+            GrayGate drains the color out of your phone by default — then hands it back
+            to the handful of apps that actually need it. Camera, Maps, Photos: untouched.
+            Everything else: quiet.
+        </p>
+
+        <div class="badges">
+            <span class="badge">No root</span>
+            <span class="badge">No accessibility service</span>
+            <span class="badge">Zero data collected</span>
+            <span class="badge">Free</span>
+        </div>
+
+        <div class="cta-row">
+            <a class="btn btn-primary" href="https://play.google.com/store/apps/details?id=com.graygate">Get it on Google Play</a>
+            <a class="btn btn-ghost" href="#setup">See the 60-second setup</a>
+        </div>
+    </div>
+</header>
+
+<!-- ================= DEMO ================= -->
+<section class="demo">
+    <div class="wrap">
+        <div class="demo-head">
+            <h2>Same phone. Two rules.</h2>
+        </div>
+
+        <div class="stage">
+            <div class="phone is-gray">
+                <img src="assets/app-list.png" alt="A phone screen rendered in grayscale">
+                <div class="label">Everything else → gray</div>
+            </div>
+            <div class="phone is-color">
+                <img src="assets/app-list.png" alt="The same phone screen in full color">
+                <div class="label">Your short list → full color</div>
+            </div>
+        </div>
+
+        <p class="stage-note">
+            GrayGate watches which app is in the foreground and flips Android's built-in
+            display filter as you switch. The change lands in about a second.
+        </p>
+    </div>
+</section>
+
+<!-- ================= SETUP ================= -->
+<section class="setup" id="setup">
+    <div class="wrap">
+        <div class="setup-card">
+            <span class="timer-pill">⏱ ~60 seconds, one time</span>
+
+            <h2>One setup. Then never again.</h2>
+            <p class="lede">
+                Android doesn't let a normal app touch the display filter, so GrayGate needs
+                one permission granted from a computer. You do it once — not at every reboot,
+                not after updates, not ever again. Then you can unplug and forget this page exists.
+            </p>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="num">1</div>
+                    <span class="secs">~30s</span>
+                    <h3>Turn on USB debugging</h3>
+                    <p>Settings → About phone → tap Build number 7 times, then Developer options → USB debugging.</p>
+                </div>
+                <div class="step">
+                    <div class="num">2</div>
+                    <span class="secs">~20s</span>
+                    <h3>Plug into any computer</h3>
+                    <p>Mac, Windows, or Linux. A friend's laptop works. You never need it again afterwards.</p>
+                </div>
+                <div class="step">
+                    <div class="num">3</div>
+                    <span class="secs">~10s</span>
+                    <h3>Paste one line</h3>
+                    <p>Copy the command below, press Enter, unplug. That's the whole thing.</p>
+                </div>
+            </div>
+
+            <div class="cmd-label">The entire command</div>
+            <div class="cmd">
+                <code id="adb-cmd">adb shell pm grant com.graygate android.permission.WRITE_SECURE_SETTINGS</code>
+                <button id="copy-btn" type="button">Copy</button>
+            </div>
+
+            <div class="gif-slot" id="gif-slot">
+                <!-- Drop the screen recording in at docs/assets/setup.gif and it replaces
+                     the placeholder automatically. Shot list: store/setup-gif-script.md -->
+                <img src="assets/setup.gif"
+                     alt="Screen recording of the one-time setup command being run in a terminal"
+                     onerror="this.remove(); document.getElementById('gif-placeholder').hidden = false;">
+                <div id="gif-placeholder" class="gif-placeholder" hidden>
+                    <div class="term">
+                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        <span class="term-title">Terminal</span>
+                    </div>
+                    <pre class="term-body"><span class="prompt">$</span> adb devices
+List of devices attached
+R58N90XXXX      device
+
+<span class="prompt">$</span> adb shell pm grant com.graygate android.permission.WRITE_SECURE_SETTINGS
+
+<span class="done">Done. Unplug the cable — you're finished forever.</span></pre>
+                </div>
+                <div class="cap">The whole setup, start to finish, in real time.</div>
+            </div>
+
+            <div class="reassure">
+                <div>The app has a <strong>Copy command</strong> button — you never type it by hand.</div>
+                <div>Nothing is installed on the computer beyond standard ADB.</div>
+                <div>It survives reboots and app updates. Once really does mean once.</div>
+                <div>Already use a color-correction filter? GrayGate saves it and puts it back.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================= MODES ================= -->
+<section class="modes">
+    <div class="wrap">
+        <h2>Pick the short list, not the long one</h2>
+        <p class="lede">
+            Most people find it easier to name the five apps that deserve color than to hunt down
+            every app that doesn't.
+        </p>
+
+        <div class="mode-grid">
+            <div class="mode featured">
+                <span class="tag">Recommended</span>
+                <h3>Whitelist — calm by default</h3>
+                <p>
+                    Your whole phone is gray. You pick the exceptions: Camera, Maps, Photos.
+                    New apps you install are gray automatically, so the calm doesn't erode over time.
+                </p>
+            </div>
+            <div class="mode plain">
+                <span class="tag">Also available</span>
+                <h3>Blacklist — target the worst offenders</h3>
+                <p>
+                    Your phone stays in color and you gray out the specific apps that pull you in.
+                    Good if there are only one or two you're fighting with.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================= FEATURES ================= -->
+<section class="feat">
+    <div class="wrap">
+        <h2>What else is in there</h2>
+        <div class="feat-grid">
+            <div class="feat-item">
+                <h4>Quick Settings tile</h4>
+                <p>Swipe down and cycle Auto → Force Gray → Force Color without opening the app.</p>
+            </div>
+            <div class="feat-item">
+                <h4>Survives reboots</h4>
+                <p>The service comes back on its own after a restart. Nothing to re-enable.</p>
+            </div>
+            <div class="feat-item">
+                <h4>Sleeps when you do</h4>
+                <p>Detection pauses while the screen is off, so it isn't grinding through your battery.</p>
+            </div>
+            <div class="feat-item">
+                <h4>Restores your filter</h4>
+                <p>If you use color correction for color blindness, your setting is saved and put back.</p>
+            </div>
+            <div class="feat-item">
+                <h4>Anti-flicker</h4>
+                <p>Debouncing and an ignore list keep system UI transitions from strobing the screen.</p>
+            </div>
+            <div class="feat-item">
+                <h4>Material You</h4>
+                <p>Dynamic color theming, light and dark, matched to the rest of your phone.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================= PRIVACY ================= -->
+<section class="privacy-band">
+    <div class="wrap">
+        <h2>It cannot leak what it never collects</h2>
+        <p>
+            GrayGate makes zero network requests. There is no analytics SDK, no crash reporter,
+            no ad library. Your app list and selections never leave the device.
+        </p>
+        <ul class="privacy-list">
+            <li>No data collection</li>
+            <li>No analytics</li>
+            <li>No network requests</li>
+            <li>No ads</li>
+            <li>No accessibility service</li>
+        </ul>
+    </div>
+</section>
+
+<!-- ================= HONEST LIMITS ================= -->
+<section class="limits">
+    <div class="wrap">
+        <h2>Where it falls short</h2>
+        <p class="lede">Worth knowing before you install, so nothing surprises you.</p>
+        <ul>
+            <li><strong>Grayscale covers the whole screen.</strong> Android exposes no true per-app filter to third-party apps, so the status bar and nav bar go gray too. Every app in this category shares this limit.</li>
+            <li><strong>There's about a 1–2 second delay</strong> when you switch apps, because detection polls rather than hooking into the system.</li>
+            <li><strong>The one-time ADB step is unavoidable.</strong> The permission it grants can't be requested from inside an app on unrooted Android.</li>
+            <li><strong>Aggressive battery managers</strong> on some Samsung, Xiaomi, and OnePlus devices may kill the service. The app walks you through exempting it.</li>
+        </ul>
+    </div>
+</section>
+
+<footer>
+    <div class="wrap">
+        <div class="foot-links">
+            <a href="privacy-policy.html">Privacy Policy</a>
+            <a href="https://github.com/KingPyrox/GrayGate">GitHub</a>
+            <a href="https://play.google.com/store/apps/details?id=com.graygate">Google Play</a>
+        </div>
+        <p>© 2026 GrayGate</p>
+    </div>
+</footer>
+
+<script>
+    (function () {
+        var btn = document.getElementById('copy-btn');
+        var cmd = document.getElementById('adb-cmd');
+        if (!btn || !cmd) return;
+
+        btn.addEventListener('click', function () {
+            var text = cmd.textContent.trim();
+
+            function done() {
+                btn.textContent = 'Copied';
+                btn.classList.add('copied');
+                setTimeout(function () {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 1800);
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done, fallback);
+            } else {
+                fallback();
+            }
+
+            // execCommand path for browsers without the async clipboard API
+            function fallback() {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); done(); } catch (e) { /* leave label alone */ }
+                document.body.removeChild(ta);
+            }
+        });
+    })();
+</script>
+
 </body>
 </html>

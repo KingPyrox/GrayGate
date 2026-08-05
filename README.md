@@ -10,20 +10,24 @@ This means grayscale applies to the **entire screen** (including the status bar 
 
 GrayGate does **not** use the AccessibilityService API. If you already use a color-correction filter (e.g., for color blindness), GrayGate saves your setting and restores it whenever grayscale turns off.
 
-## Setup
+## Setup — once, then never again
 
-GrayGate requires a one-time ADB command to grant the `WRITE_SECURE_SETTINGS` permission:
+`WRITE_SECURE_SETTINGS` can't be requested from inside an app on unrooted Android, so it
+has to be granted over ADB. This happens **one time**: it survives reboots, app updates,
+and Android version upgrades. Plug into any computer, paste one line, unplug.
 
 ```bash
 adb shell pm grant com.graygate android.permission.WRITE_SECURE_SETTINGS
 ```
 
-The in-app onboarding flow walks you through this and all other required permissions.
+The in-app onboarding flow walks you through this — including a **Copy command** button, so
+you never type it by hand — along with all other required permissions.
 
 ## Features
 
+- **Whitelist mode:** Everything is grayscale except the apps you pick. Newly installed apps
+  are gray by default, so the calm doesn't erode over time.
 - **Blacklist mode:** Selected apps appear in grayscale; everything else stays in color
-- **Whitelist mode:** Everything is grayscale except selected apps
 - **Quick Settings tile:** Tap to cycle between Auto / Force Grayscale / Force Color
 - **Anti-flicker system:** Debouncing and package ignore lists prevent flickering from system UI transitions
 - **Boot persistence:** Service restarts automatically after device reboot
@@ -31,10 +35,14 @@ The in-app onboarding flow walks you through this and all other required permiss
 
 ## Building
 
-Open in Android Studio (Hedgehog or newer) and build normally. Requires:
-- Android SDK 35 (compile SDK)
-- Kotlin 1.9.22+
+Open in Android Studio and build normally. Requires:
+- Android SDK 36 (compile SDK and target SDK — Android 16)
+- Kotlin 2.2.10 / AGP 9.2.1 (see [build.gradle.kts](build.gradle.kts))
 - JDK 17
+- `minSdk` is 26 (Android 8.0)
+
+Target API 36 is a Play Store requirement: from **30 August 2026**, updates are rejected
+unless the target API level is within one year of the latest Android release.
 
 ## Architecture
 
