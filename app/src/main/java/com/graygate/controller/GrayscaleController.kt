@@ -48,6 +48,10 @@ object GrayscaleController {
     // Anti-flicker: minimum time between state changes
     private const val DEBOUNCE_MS = 1500L
 
+    // Delay before restoring the remembered daltonizer mode after disabling
+    // the filter — long enough for the system's filter transition to settle.
+    private const val MODE_RESTORE_DELAY_MS = 500L
+
     private val handler = Handler(Looper.getMainLooper())
     private var pendingRecheck: Runnable? = null
 
@@ -58,6 +62,22 @@ object GrayscaleController {
     private var currentGrayscaleState: Boolean = false
     private var lastToggleTime: Long = 0L
     private var lastForegroundPackage: String = ""
+
+    // The last package that actually decided the grayscale state — i.e. the most
+    // recent NON-ignored foreground app. Distinct from [lastForegroundPackage],
+    // which is only a dedupe key and gets cleared to force a re-poll.
+    //
+    // Overrides need this: returning to AUTO has no fixed target, so it has to
+    // recompute from whichever app currently owns the state. It cannot use the
+    // live foreground package, because when the user flips the override from
+    // GrayGate's own Settings screen the foreground app *is* GrayGate — and
+    // ignored packages (self, keyboards, system UI) deliberately resolve to null.
+    //
+    // Read by the detection service too: ForegroundResolver needs to know which
+    // app owns the state to recognize "that app just stopped" as a close.
+    @Volatile
+    var lastDecidedPackage: String = ""
+        private set
 
     // Configuration — synced from Room/DataStore by GrayGateApp
     @Volatile var mode: GrayscaleMode = GrayscaleMode.BLACKLIST
@@ -88,6 +108,7 @@ object GrayscaleController {
         ) ?: return
 
         lastForegroundPackage = packageName
+        lastDecidedPackage = packageName
         Log.d(TAG, "App: $packageName | Mode: $mode | ShouldGray: $shouldBeGray")
 
         // Apply debounce
@@ -106,20 +127,56 @@ object GrayscaleController {
      */
     @Synchronized
     fun applyOverride(context: Context, newOverride: ManualOverride) {
+        val appContext = context.applicationContext
         override = newOverride
         cancelPendingRecheck()
+
+        // Always let the next poll through, even if the foreground app never
+        // changed — the rules it evaluates against just did.
+        lastForegroundPackage = ""
+
         when (newOverride) {
             // Never gray the screen while the master toggle is off — nothing
             // would be running to manage or revert it. Turning color ON is
             // always safe.
             ManualOverride.FORCE_GRAY -> {
-                if (isEnabled && configLoaded) setGrayscaleIfChanged(context.applicationContext, true)
+                if (isEnabled && configLoaded) setGrayscaleIfChanged(appContext, true)
             }
-            ManualOverride.FORCE_COLOR -> setGrayscaleIfChanged(context.applicationContext, false)
-            // Clear the tracked package so the next poll re-evaluates the
-            // current foreground app against the per-app rules.
-            ManualOverride.AUTO -> lastForegroundPackage = ""
+            ManualOverride.FORCE_COLOR -> setGrayscaleIfChanged(appContext, false)
+            // AUTO has no fixed target, so it must recompute from the app that
+            // currently owns the state and apply the result NOW.
+            //
+            // Deferring to the next poll (what this used to do) left the screen
+            // stuck: the poll reports GrayGate itself while the user is in the
+            // Settings screen, self is an ignored package, so desiredState()
+            // returned null and nothing was ever applied. Coming back from
+            // FORCE_GRAY therefore stayed gray — and in WHITELIST mode leaving
+            // the app didn't fix it either, since the launcher is also gray.
+            ManualOverride.AUTO -> reapplyAutoRules(appContext)
         }
+    }
+
+    /**
+     * Recompute and apply the per-app rule for whichever app currently owns the
+     * grayscale state. No-op when nothing has been decided yet, or when the
+     * owning app resolves to "don't change" (disabled / ignored).
+     */
+    private fun reapplyAutoRules(appContext: Context) {
+        if (!isEnabled || !configLoaded) return
+        val owner = lastDecidedPackage
+        if (owner.isBlank()) return
+
+        val desired = GrayscaleRules.desiredState(
+            packageName = owner,
+            selfPackageName = appContext.packageName,
+            isEnabled = isEnabled,
+            override = ManualOverride.AUTO,
+            mode = mode,
+            selectedPackages = selectedPackages
+        ) ?: return
+
+        Log.d(TAG, "AUTO restored | Owner: $owner | ShouldGray: $desired")
+        setGrayscaleIfChanged(appContext, desired)
     }
 
     /**
@@ -135,6 +192,7 @@ object GrayscaleController {
         }
         currentGrayscaleState = false
         lastForegroundPackage = ""
+        lastDecidedPackage = ""
         lastToggleTime = 0L
     }
 
@@ -208,8 +266,13 @@ object GrayscaleController {
                     .putInt(PREF_ORIGINAL_MODE, curMode)
                     .apply()
             }
-            Settings.Secure.putInt(resolver, DALTONIZER_ENABLED, 1)
+            // Mode BEFORE enabled: enabling first briefly applies whatever
+            // stale mode is in the setting (e.g., the user's color-correction
+            // preset) until the grayscale mode lands — a visible colored flash,
+            // and the racing writes can wedge the display transform (seen live
+            // on Android 17).
             Settings.Secure.putInt(resolver, DALTONIZER_MODE, DALTONIZER_GRAYSCALE)
+            Settings.Secure.putInt(resolver, DALTONIZER_ENABLED, 1)
         } catch (e: SecurityException) {
             Log.e(TAG, "WRITE_SECURE_SETTINGS not granted!", e)
         }
@@ -224,11 +287,34 @@ object GrayscaleController {
         try {
             val resolver = context.contentResolver
             val p = prefs(context)
-            if (p.getBoolean(PREF_ORIGINAL_SAVED, false)) {
-                Settings.Secure.putInt(resolver, DALTONIZER_ENABLED, p.getInt(PREF_ORIGINAL_ENABLED, 0))
-                Settings.Secure.putInt(resolver, DALTONIZER_MODE, p.getInt(PREF_ORIGINAL_MODE, -1))
-            } else {
+            if (!p.getBoolean(PREF_ORIGINAL_SAVED, false)) {
                 Settings.Secure.putInt(resolver, DALTONIZER_ENABLED, 0)
+                return
+            }
+
+            val origEnabled = p.getInt(PREF_ORIGINAL_ENABLED, 0)
+            val origMode = p.getInt(PREF_ORIGINAL_MODE, -1)
+
+            if (origEnabled == 1) {
+                // Filter stays on, only the mode changes (user runs a
+                // color-correction preset). Mode first, then enabled — same
+                // ordering rule as applyGrayscale.
+                Settings.Secure.putInt(resolver, DALTONIZER_MODE, origMode)
+                Settings.Secure.putInt(resolver, DALTONIZER_ENABLED, 1)
+            } else {
+                // Filter goes off. Disable first, restore the remembered mode
+                // AFTER the transition settles — writing both back-to-back races
+                // the system's filter animation, which can re-apply the old mode
+                // matrix while the setting reads "off" (screen stuck showing
+                // color correction; observed live on Android 17).
+                Settings.Secure.putInt(resolver, DALTONIZER_ENABLED, 0)
+                handler.postDelayed({
+                    try {
+                        Settings.Secure.putInt(resolver, DALTONIZER_MODE, origMode)
+                    } catch (e: SecurityException) {
+                        Log.e(TAG, "WRITE_SECURE_SETTINGS not granted!", e)
+                    }
+                }, MODE_RESTORE_DELAY_MS)
             }
         } catch (e: SecurityException) {
             Log.e(TAG, "WRITE_SECURE_SETTINGS not granted!", e)
