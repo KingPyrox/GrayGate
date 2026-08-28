@@ -30,12 +30,10 @@ class GrayGateApp : Application() {
         appScope.launch {
             combine(
                 dao.observeSelectedPackageNames(),
-                settingsRepo.grayscaleMode,
                 settingsRepo.manualOverride,
                 settingsRepo.isEnabled
-            ) { packages, mode, override, enabled ->
+            ) { packages, override, enabled ->
                 GrayscaleController.selectedPackages = packages.toSet()
-                GrayscaleController.mode = mode
                 GrayscaleController.override = override
                 GrayscaleController.isEnabled = enabled
                 GrayscaleController.configLoaded = true

@@ -25,9 +25,7 @@ you never type it by hand — along with all other required permissions.
 
 ## Features
 
-- **Whitelist mode:** Everything is grayscale except the apps you pick. Newly installed apps
-  are gray by default, so the calm doesn't erode over time.
-- **Blacklist mode:** Selected apps appear in grayscale; everything else stays in color
+- **Per-app grayscale:** Selected apps appear in grayscale; everything else stays in color
 - **Quick Settings tile:** Tap to cycle between Auto / Force Grayscale / Force Color
 - **Anti-flicker system:** Debouncing and package ignore lists prevent flickering from system UI transitions
 - **Boot persistence:** Service restarts automatically after device reboot

@@ -22,8 +22,12 @@ object PermissionUtil {
      */
     fun hasUsageStatsPermission(context: Context): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        // unsafeCheckOpNoThrow only exists on API 29+
+        // unsafeCheckOpNoThrow only exists on API 29+. It's deprecated in
+        // favor of noteOp-style call tracking, which requires attributing the
+        // op to a real user action — not a fit for a background permission
+        // check like this, so we deliberately keep the simple query.
         val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            @Suppress("DEPRECATION")
             appOps.unsafeCheckOpNoThrow(
                 AppOpsManager.OPSTR_GET_USAGE_STATS,
                 android.os.Process.myUid(),

@@ -23,11 +23,6 @@
 
     <!-- App List -->
     <string name="search_apps">Search apps…</string>
-    <string name="no_apps_selected">No apps selected for grayscale yet</string>
-    <string name="mode_blacklist">Blacklist Mode</string>
-    <string name="mode_blacklist_desc">Selected apps appear in grayscale</string>
-    <string name="mode_whitelist">Whitelist Mode</string>
-    <string name="mode_whitelist_desc">Everything is grayscale except selected apps</string>
 
     <!-- Quick Settings Tile -->
     <string name="tile_auto">Auto</string>

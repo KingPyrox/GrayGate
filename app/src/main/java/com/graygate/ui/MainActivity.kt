@@ -39,7 +39,6 @@ fun GrayGateApp(viewModel: MainViewModel = viewModel()) {
     val apps by viewModel.appList.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedCount by viewModel.selectedCount.collectAsState()
-    val grayscaleMode by viewModel.grayscaleMode.collectAsState()
     val manualOverride by viewModel.manualOverride.collectAsState()
     val isEnabled by viewModel.isEnabled.collectAsState()
     val hasUsageStats by viewModel.hasUsageStats.collectAsState()
@@ -103,11 +102,9 @@ fun GrayGateApp(viewModel: MainViewModel = viewModel()) {
                 apps = apps,
                 searchQuery = searchQuery,
                 selectedCount = selectedCount,
-                grayscaleMode = grayscaleMode,
                 isEnabled = isEnabled,
                 onSearchQueryChange = { viewModel.setSearchQuery(it) },
                 onToggleApp = { viewModel.toggleAppSelection(it) },
-                onModeChange = { viewModel.setGrayscaleMode(it) },
                 onEnabledChange = { viewModel.setEnabled(it) },
                 onNavigateToSettings = { navController.navigate("settings") }
             )

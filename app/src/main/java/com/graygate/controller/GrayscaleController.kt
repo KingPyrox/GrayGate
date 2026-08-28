@@ -5,7 +5,6 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
-import com.graygate.data.model.GrayscaleMode
 import com.graygate.data.model.ManualOverride
 
 /**
@@ -80,7 +79,6 @@ object GrayscaleController {
         private set
 
     // Configuration — synced from Room/DataStore by GrayGateApp
-    @Volatile var mode: GrayscaleMode = GrayscaleMode.BLACKLIST
     @Volatile var override: ManualOverride = ManualOverride.AUTO
     @Volatile var selectedPackages: Set<String> = emptySet()
     @Volatile var isEnabled: Boolean = true
@@ -103,13 +101,12 @@ object GrayscaleController {
             selfPackageName = appContext.packageName,
             isEnabled = isEnabled,
             override = override,
-            mode = mode,
             selectedPackages = selectedPackages
         ) ?: return
 
         lastForegroundPackage = packageName
         lastDecidedPackage = packageName
-        Log.d(TAG, "App: $packageName | Mode: $mode | ShouldGray: $shouldBeGray")
+        Log.d(TAG, "App: $packageName | ShouldGray: $shouldBeGray")
 
         // Apply debounce
         val now = System.currentTimeMillis()
@@ -150,8 +147,8 @@ object GrayscaleController {
             // stuck: the poll reports GrayGate itself while the user is in the
             // Settings screen, self is an ignored package, so desiredState()
             // returned null and nothing was ever applied. Coming back from
-            // FORCE_GRAY therefore stayed gray — and in WHITELIST mode leaving
-            // the app didn't fix it either, since the launcher is also gray.
+            // FORCE_GRAY therefore stayed gray even after leaving the app,
+            // since the launcher isn't selected either.
             ManualOverride.AUTO -> reapplyAutoRules(appContext)
         }
     }
@@ -171,7 +168,6 @@ object GrayscaleController {
             selfPackageName = appContext.packageName,
             isEnabled = isEnabled,
             override = ManualOverride.AUTO,
-            mode = mode,
             selectedPackages = selectedPackages
         ) ?: return
 
@@ -206,7 +202,7 @@ object GrayscaleController {
                 // may have changed during the debounce window.
                 if (lastForegroundPackage == packageName) {
                     val desired = GrayscaleRules.desiredState(
-                        packageName, context.packageName, isEnabled, override, mode, selectedPackages
+                        packageName, context.packageName, isEnabled, override, selectedPackages
                     )
                     if (desired != null) setGrayscaleIfChanged(context, desired)
                 }

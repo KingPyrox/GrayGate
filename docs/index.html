@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GrayGate — Your phone stays calm. Your camera stays colorful.</title>
-<meta name="description" content="GrayGate keeps your phone in grayscale and lets only the apps you actually need stay in full color. One 60-second setup, then never again.">
+<title>GrayGate — Grayscale the apps that pull you in.</title>
+<meta name="description" content="GrayGate lets you pick which apps go grayscale on Android — the ones that pull your attention. Everything else stays exactly as it is. One 60-second setup, then never again.">
 
-<meta property="og:title" content="GrayGate — Your phone stays calm. Your camera stays colorful.">
-<meta property="og:description" content="Grayscale everything by default. Keep camera, maps, and photos in full color. One 60-second setup, then never again.">
+<meta property="og:title" content="GrayGate — Grayscale the apps that pull you in.">
+<meta property="og:description" content="Pick the apps you're fighting with. GrayGate grays them out automatically — everything else on your phone stays untouched. One 60-second setup, then never again.">
 <meta property="og:type" content="website">
 
 <style>
@@ -318,30 +318,6 @@
     @media (prefers-color-scheme: dark) { .reassure div::before { color: var(--accent); } }
     :root[data-theme="dark"] .reassure div::before { color: var(--accent); }
 
-    /* ---------- Modes ---------- */
-    .modes { padding: 1rem 0 4rem; }
-    .mode-grid { display: grid; gap: 1.25rem; margin-top: 1.75rem; }
-    @media (min-width: 720px) { .mode-grid { grid-template-columns: 1fr 1fr; } }
-
-    .mode {
-        background: var(--card);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        padding: 1.5rem;
-    }
-    .mode.featured { border-color: var(--accent); border-width: 2px; }
-    .mode .tag {
-        display: inline-block;
-        font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em;
-        text-transform: uppercase;
-        padding: 0.2rem 0.6rem; border-radius: 999px;
-        margin-bottom: 0.7rem;
-    }
-    .mode.featured .tag { background: var(--accent); color: #10242e; }
-    .mode.plain .tag   { background: var(--line); color: var(--ink-soft); }
-    .mode h3 { font-size: 1.15rem; margin-bottom: 0.4rem; font-weight: 700; }
-    .mode p  { color: var(--ink-soft); font-size: 0.95rem; }
-
     /* ---------- Features / privacy ---------- */
     .feat { padding: 0 0 4rem; }
     .feat-grid { display: grid; gap: 1rem; margin-top: 1.5rem; }
@@ -405,14 +381,14 @@
         </div>
 
         <h1>
-            Your phone stays <span class="calm">calm</span>.<br>
-            Your camera stays <span class="color">colorful</span>.
+            Some apps get <span class="calm">grayscale</span>.<br>
+            Everything else stays <span class="color">exactly as it is</span>.
         </h1>
 
         <p class="sub">
-            GrayGate drains the color out of your phone by default — then hands it back
-            to the handful of apps that actually need it. Camera, Maps, Photos: untouched.
-            Everything else: quiet.
+            Pick the specific apps that pull your attention — social media, games,
+            whatever gets you — and GrayGate desaturates them automatically the moment
+            you open them. Nothing else on your phone changes.
         </p>
 
         <div class="badges">
@@ -433,23 +409,23 @@
 <section class="demo">
     <div class="wrap">
         <div class="demo-head">
-            <h2>Same phone. Two rules.</h2>
+            <h2>Same phone. One rule.</h2>
         </div>
 
         <div class="stage">
             <div class="phone is-gray">
                 <img src="assets/app-list.png" alt="A phone screen rendered in grayscale">
-                <div class="label">Everything else → gray</div>
+                <div class="label">The apps you pick → gray</div>
             </div>
             <div class="phone is-color">
                 <img src="assets/app-list.png" alt="The same phone screen in full color">
-                <div class="label">Your short list → full color</div>
+                <div class="label">Everything else → untouched</div>
             </div>
         </div>
 
         <p class="stage-note">
-            GrayGate watches which app is in the foreground and flips Android's built-in
-            display filter as you switch. The change lands in about a second.
+            GrayGate watches which app is in the foreground and grays out the ones
+            you've selected as you switch to them. The change lands in about a second.
         </p>
     </div>
 </section>
@@ -521,36 +497,6 @@ R58N90XXXX      device
                 <div>Nothing is installed on the computer beyond standard ADB.</div>
                 <div>It survives reboots and app updates. Once really does mean once.</div>
                 <div>Already use a color-correction filter? GrayGate saves it and puts it back.</div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ================= MODES ================= -->
-<section class="modes">
-    <div class="wrap">
-        <h2>Pick the short list, not the long one</h2>
-        <p class="lede">
-            Most people find it easier to name the five apps that deserve color than to hunt down
-            every app that doesn't.
-        </p>
-
-        <div class="mode-grid">
-            <div class="mode featured">
-                <span class="tag">Recommended</span>
-                <h3>Whitelist — calm by default</h3>
-                <p>
-                    Your whole phone is gray. You pick the exceptions: Camera, Maps, Photos.
-                    New apps you install are gray automatically, so the calm doesn't erode over time.
-                </p>
-            </div>
-            <div class="mode plain">
-                <span class="tag">Also available</span>
-                <h3>Blacklist — target the worst offenders</h3>
-                <p>
-                    Your phone stays in color and you gray out the specific apps that pull you in.
-                    Good if there are only one or two you're fighting with.
-                </p>
             </div>
         </div>
     </div>

@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -172,7 +173,7 @@ fun SettingsScreen(
                     )
                 },
                 leadingContent = {
-                    Icon(Icons.Filled.Help, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null)
                 }
             )
 

@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
-import com.graygate.data.model.GrayscaleMode
 import com.graygate.data.model.ManualOverride
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -16,7 +15,6 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class SettingsRepository(private val context: Context) {
 
     companion object {
-        private val KEY_MODE = stringPreferencesKey("grayscale_mode")
         private val KEY_OVERRIDE = stringPreferencesKey("manual_override")
         private val KEY_ENABLED = booleanPreferencesKey("is_enabled")
         private val KEY_ONBOARDING_DONE = booleanPreferencesKey("onboarding_complete")
@@ -27,14 +25,6 @@ class SettingsRepository(private val context: Context) {
     // these flows staying alive).
     private val prefsFlow: Flow<Preferences> = context.dataStore.data.catch { e ->
         if (e is IOException) emit(emptyPreferences()) else throw e
-    }
-
-    val grayscaleMode: Flow<GrayscaleMode> = prefsFlow.map { prefs ->
-        try {
-            GrayscaleMode.valueOf(prefs[KEY_MODE] ?: GrayscaleMode.BLACKLIST.name)
-        } catch (e: Exception) {
-            GrayscaleMode.BLACKLIST
-        }
     }
 
     val manualOverride: Flow<ManualOverride> = prefsFlow.map { prefs ->
@@ -51,10 +41,6 @@ class SettingsRepository(private val context: Context) {
 
     val isOnboardingComplete: Flow<Boolean> = prefsFlow.map { prefs ->
         prefs[KEY_ONBOARDING_DONE] ?: false
-    }
-
-    suspend fun setGrayscaleMode(mode: GrayscaleMode) {
-        context.dataStore.edit { it[KEY_MODE] = mode.name }
     }
 
     suspend fun setManualOverride(override: ManualOverride) {

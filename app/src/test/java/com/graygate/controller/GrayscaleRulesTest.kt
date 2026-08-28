@@ -1,6 +1,5 @@
 package com.graygate.controller
 
-import com.graygate.data.model.GrayscaleMode
 import com.graygate.data.model.ManualOverride
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -15,45 +14,32 @@ class GrayscaleRulesTest {
 
     private fun decide(
         packageName: String,
-        mode: GrayscaleMode = GrayscaleMode.BLACKLIST,
         override: ManualOverride = ManualOverride.AUTO,
         isEnabled: Boolean = true,
         packages: Set<String> = selected
-    ) = GrayscaleRules.desiredState(packageName, self, isEnabled, override, mode, packages)
+    ) = GrayscaleRules.desiredState(packageName, self, isEnabled, override, packages)
 
-    // --- Blacklist mode ---
+    // --- Per-app rules: selected apps go gray, everything else stays color ---
 
     @Test
-    fun `blacklist grayscales selected app`() {
+    fun `grayscales selected app`() {
         assertEquals(true, decide("com.instagram.android"))
     }
 
     @Test
-    fun `blacklist keeps color for unselected app`() {
+    fun `keeps color for unselected app`() {
         assertEquals(false, decide("com.android.camera"))
-    }
-
-    // --- Whitelist mode ---
-
-    @Test
-    fun `whitelist keeps color for selected app`() {
-        assertEquals(false, decide("com.instagram.android", mode = GrayscaleMode.WHITELIST))
-    }
-
-    @Test
-    fun `whitelist grayscales unselected app`() {
-        assertEquals(true, decide("com.android.camera", mode = GrayscaleMode.WHITELIST))
     }
 
     // --- Manual overrides take precedence over per-app rules ---
 
     @Test
-    fun `force gray overrides blacklist rules`() {
+    fun `force gray overrides per-app rules`() {
         assertEquals(true, decide("com.android.camera", override = ManualOverride.FORCE_GRAY))
     }
 
     @Test
-    fun `force color overrides blacklist rules`() {
+    fun `force color overrides per-app rules`() {
         assertEquals(false, decide("com.instagram.android", override = ManualOverride.FORCE_COLOR))
     }
 
@@ -113,17 +99,6 @@ class GrayscaleRulesTest {
         // the state. Both directions have to come out right.
         assertEquals(true, decide("com.instagram.android", override = ManualOverride.AUTO))
         assertEquals(false, decide("com.android.camera", override = ManualOverride.AUTO))
-    }
-
-    @Test
-    fun `whitelist mode does not self-heal by leaving the app`() {
-        // Why the stuck-gray state was not merely cosmetic: in WHITELIST mode the
-        // launcher is unselected, so it is also gray. Backing out of GrayGate
-        // could never reveal that the override had failed to apply.
-        assertEquals(
-            true,
-            decide("com.google.android.apps.nexuslauncher", mode = GrayscaleMode.WHITELIST)
-        )
     }
 
     // --- isIgnored helper ---

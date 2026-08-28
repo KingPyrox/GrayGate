@@ -10,11 +10,6 @@ data class SelectedApp(
     val addedAt: Long = System.currentTimeMillis()
 )
 
-enum class GrayscaleMode {
-    BLACKLIST,  // Selected apps are grayscaled
-    WHITELIST   // Everything EXCEPT selected apps is grayscaled
-}
-
 enum class ManualOverride {
     AUTO,           // Follow per-app rules
     FORCE_GRAY,     // Force grayscale on everything

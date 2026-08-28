@@ -1,6 +1,5 @@
 package com.graygate.controller
 
-import com.graygate.data.model.GrayscaleMode
 import com.graygate.data.model.ManualOverride
 
 /**
@@ -44,7 +43,6 @@ object GrayscaleRules {
         selfPackageName: String,
         isEnabled: Boolean,
         override: ManualOverride,
-        mode: GrayscaleMode,
         selectedPackages: Set<String>
     ): Boolean? {
         if (!isEnabled) return null
@@ -52,10 +50,7 @@ object GrayscaleRules {
         return when (override) {
             ManualOverride.FORCE_GRAY -> true
             ManualOverride.FORCE_COLOR -> false
-            ManualOverride.AUTO -> when (mode) {
-                GrayscaleMode.BLACKLIST -> packageName in selectedPackages
-                GrayscaleMode.WHITELIST -> packageName !in selectedPackages
-            }
+            ManualOverride.AUTO -> packageName in selectedPackages
         }
     }
 }

@@ -23,9 +23,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val pm = application.packageManager
 
     // --- Settings flows ---
-    val grayscaleMode = settingsRepo.grayscaleMode.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5000), GrayscaleMode.BLACKLIST
-    )
     val manualOverride = settingsRepo.manualOverride.stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5000), ManualOverride.AUTO
     )
@@ -132,10 +129,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
-    }
-
-    fun setGrayscaleMode(mode: GrayscaleMode) {
-        viewModelScope.launch { settingsRepo.setGrayscaleMode(mode) }
     }
 
     fun setManualOverride(override: ManualOverride) {

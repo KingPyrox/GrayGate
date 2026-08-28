@@ -21,7 +21,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.graygate.data.model.AppInfo
-import com.graygate.data.model.GrayscaleMode
 import com.graygate.ui.theme.GateColorSide
 import com.graygate.ui.theme.GateGraySide
 import kotlinx.coroutines.Dispatchers
@@ -33,16 +32,12 @@ fun AppListScreen(
     apps: List<AppInfo>,
     searchQuery: String,
     selectedCount: Int,
-    grayscaleMode: GrayscaleMode,
     isEnabled: Boolean,
     onSearchQueryChange: (String) -> Unit,
     onToggleApp: (AppInfo) -> Unit,
-    onModeChange: (GrayscaleMode) -> Unit,
     onEnabledChange: (Boolean) -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
-    var showModeDialog by remember { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -50,9 +45,7 @@ fun AppListScreen(
                     Column {
                         Text("GrayGate", fontWeight = FontWeight.Bold)
                         Text(
-                            text = "$selectedCount app${if (selectedCount != 1) "s" else ""} selected · ${
-                                if (grayscaleMode == GrayscaleMode.BLACKLIST) "Blacklist" else "Whitelist"
-                            }",
+                            text = "$selectedCount app${if (selectedCount != 1) "s" else ""} selected",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
@@ -114,45 +107,8 @@ fun AppListScreen(
                 )
             )
 
-            // Mode selector chip
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterChip(
-                    selected = grayscaleMode == GrayscaleMode.BLACKLIST,
-                    onClick = { onModeChange(GrayscaleMode.BLACKLIST) },
-                    label = { Text("Blacklist") },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    ),
-                    leadingIcon = if (grayscaleMode == GrayscaleMode.BLACKLIST) {{
-                        Icon(Icons.Filled.Check, contentDescription = null, Modifier.size(18.dp))
-                    }} else null
-                )
-                FilterChip(
-                    selected = grayscaleMode == GrayscaleMode.WHITELIST,
-                    onClick = { onModeChange(GrayscaleMode.WHITELIST) },
-                    label = { Text("Whitelist") },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    ),
-                    leadingIcon = if (grayscaleMode == GrayscaleMode.WHITELIST) {{
-                        Icon(Icons.Filled.Check, contentDescription = null, Modifier.size(18.dp))
-                    }} else null
-                )
-            }
-
-            // Mode description
             Text(
-                text = if (grayscaleMode == GrayscaleMode.BLACKLIST)
-                    "Selected apps will appear in grayscale"
-                else
-                    "Everything is grayscale except selected apps",
+                text = "Selected apps will appear in grayscale",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
