@@ -10,6 +10,12 @@ data class SelectedApp(
     val addedAt: Long = System.currentTimeMillis()
 )
 
+enum class ThemePreference {
+    SYSTEM,  // Follow the device's light/dark setting
+    LIGHT,
+    DARK
+}
+
 enum class ManualOverride {
     AUTO,           // Follow per-app rules
     FORCE_GRAY,     // Force grayscale on everything

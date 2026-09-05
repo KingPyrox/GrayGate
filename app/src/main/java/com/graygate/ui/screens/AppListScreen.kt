@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -16,13 +17,14 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.graygate.data.model.AppInfo
-import com.graygate.ui.theme.GateColorSide
 import com.graygate.ui.theme.GateGraySide
+import com.graygate.ui.theme.gateAccent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -38,6 +40,8 @@ fun AppListScreen(
     onEnabledChange: (Boolean) -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
+    val accent = gateAccent
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -47,7 +51,10 @@ fun AppListScreen(
                         Text(
                             text = "$selectedCount app${if (selectedCount != 1) "s" else ""} selected",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            // No alpha: onPrimaryContainer is already the muted token for this
+                            // surface, and stacking 0.7 on top dropped it to 4.32:1 light /
+                            // 4.16:1 dark — under the 4.5:1 floor. Size carries the hierarchy.
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 },
@@ -62,8 +69,8 @@ fun AppListScreen(
                         checked = isEnabled,
                         onCheckedChange = onEnabledChange,
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = GateColorSide,
-                            checkedTrackColor = GateColorSide.copy(alpha = 0.3f),
+                            checkedThumbColor = accent,
+                            checkedTrackColor = accent.copy(alpha = 0.3f),
                             uncheckedThumbColor = GateGraySide,
                             uncheckedTrackColor = GateGraySide.copy(alpha = 0.2f),
                         ),
@@ -107,14 +114,18 @@ fun AppListScreen(
                 )
             )
 
-            Text(
-                text = "Selected apps will appear in grayscale",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
+            // First-run guidance only — once anything is selected the top bar's
+            // count says the same thing, so this stops earning its space.
+            if (selectedCount == 0) {
+                Text(
+                    text = "Pick the apps you want in grayscale",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                )
+            }
 
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Spacer(Modifier.height(4.dp))
 
             // App list
             if (apps.isEmpty()) {
@@ -140,6 +151,15 @@ fun AppListScreen(
                     }
                 }
             } else {
+                // Only show the package name where the label alone is ambiguous
+                // (e.g. three different apps all called "Authenticator"). Showing
+                // it on every row turns the whole list into two-line noise.
+                val ambiguousLabels = remember(apps) {
+                    apps.groupBy { it.appName.lowercase() }
+                        .filterValues { it.size > 1 }
+                        .keys
+                }
+
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 16.dp)
@@ -150,6 +170,7 @@ fun AppListScreen(
                     ) { app ->
                         AppListItem(
                             app = app,
+                            showPackageName = app.appName.lowercase() in ambiguousLabels,
                             onToggle = { onToggleApp(app) }
                         )
                     }
@@ -162,9 +183,11 @@ fun AppListScreen(
 @Composable
 private fun AppListItem(
     app: AppInfo,
+    showPackageName: Boolean,
     onToggle: () -> Unit
 ) {
     val context = LocalContext.current
+    val accent = gateAccent
     // Load the icon off the main thread — getApplicationIcon is a binder
     // call and toBitmap allocates; doing either during composition janks
     // fast scrolling through the list.
@@ -191,15 +214,19 @@ private fun AppListItem(
                 fontWeight = if (app.isSelected) FontWeight.Medium else FontWeight.Normal
             )
         },
-        supportingContent = {
-            Text(
-                text = app.packageName,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
-        },
+        supportingContent = if (showPackageName) {
+            {
+                Text(
+                    text = app.packageName,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    // Same reason as the top bar subtitle: onSurfaceVariant is already
+                    // muted; 0.7 on top put it at 3.36:1 in light theme.
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else null,
         leadingContent = {
             val iconBitmap = icon
             if (iconBitmap != null) {
@@ -219,17 +246,25 @@ private fun AppListItem(
             }
         },
         trailingContent = {
+            // onCheckedChange = null: the whole row owns the click (see toggleable
+            // below), so the Switch must not also handle it or the two fight.
             Switch(
                 checked = app.isSelected,
-                onCheckedChange = { onToggle() },
+                onCheckedChange = null,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = GateColorSide,
-                    checkedTrackColor = GateColorSide.copy(alpha = 0.3f),
+                    checkedThumbColor = accent,
+                    checkedTrackColor = accent.copy(alpha = 0.3f),
                     uncheckedThumbColor = GateGraySide,
                     uncheckedTrackColor = GateGraySide.copy(alpha = 0.2f),
                 )
             )
         },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = app.isSelected,
+                onValueChange = { onToggle() },
+                role = Role.Switch
+            )
     )
 }

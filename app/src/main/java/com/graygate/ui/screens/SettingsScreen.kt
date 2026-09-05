@@ -6,6 +6,8 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -16,17 +18,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.graygate.BuildConfig
 import com.graygate.data.model.ManualOverride
-import com.graygate.ui.theme.GateColorSide
+import com.graygate.data.model.ThemePreference
+import com.graygate.ui.theme.gateAccent
 import com.graygate.util.PermissionUtil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    themePreference: ThemePreference,
+    onThemePreferenceChange: (ThemePreference) -> Unit,
     manualOverride: ManualOverride,
     hasUsageStats: Boolean,
     hasWriteSecure: Boolean,
@@ -64,6 +70,32 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
+            // --- Appearance ---
+            SectionHeader("Appearance")
+
+            val themeOptions = listOf(
+                ThemePreference.SYSTEM to "System",
+                ThemePreference.LIGHT to "Light",
+                ThemePreference.DARK to "Dark",
+            )
+
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                themeOptions.forEachIndexed { index, (value, label) ->
+                    SegmentedButton(
+                        selected = themePreference == value,
+                        onClick = { onThemePreferenceChange(value) },
+                        shape = SegmentedButtonDefaults.itemShape(index, themeOptions.size),
+                        label = { Text(label) }
+                    )
+                }
+            }
+
+            HorizontalDivider(Modifier.padding(vertical = 16.dp))
+
             // --- Manual Override ---
             SectionHeader("Manual Override")
 
@@ -73,19 +105,26 @@ fun SettingsScreen(
                 Triple(ManualOverride.FORCE_COLOR, "Force Color", "Disable all grayscale"),
             )
 
-            Column(Modifier.padding(horizontal = 16.dp)) {
+            Column(Modifier.selectableGroup()) {
                 overrideOptions.forEach { (value, label, desc) ->
+                    // The whole row is the target, not just the 20dp circle.
+                    // onClick = null on the RadioButton so the row owns the click.
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                            .selectable(
+                                selected = manualOverride == value,
+                                onClick = { onManualOverrideChange(value) },
+                                role = Role.RadioButton
+                            )
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
                             selected = manualOverride == value,
-                            onClick = { onManualOverrideChange(value) }
+                            onClick = null
                         )
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(12.dp))
                         Column {
                             Text(label, style = MaterialTheme.typography.bodyLarge)
                             Text(
@@ -166,10 +205,9 @@ fun SettingsScreen(
                 headlineContent = { Text("How it works") },
                 supportingContent = {
                     Text(
-                        "GrayGate checks which app is in the foreground (about every 1.5 seconds) and " +
-                        "toggles Android's system-wide daltonizer, creating the effect of per-app grayscale. " +
-                        "The entire screen (including status bar) will be affected when a selected app " +
-                        "is in the foreground."
+                        "GrayGate watches the foreground app and toggles Android's system " +
+                        "daltonizer to match. Grayscale covers the whole screen, status bar " +
+                        "included — Android offers no true per-app filter."
                     )
                 },
                 leadingContent = {
@@ -199,28 +237,23 @@ private fun PermissionStatusRow(
     isGranted: Boolean,
     onFix: () -> Unit
 ) {
+    // One status indicator, not two. The leading icon carries the state; the
+    // trailing slot is reserved for the action, and only appears when there
+    // actually is one to take.
     ListItem(
         headlineContent = { Text(label) },
-        trailingContent = {
-            if (isGranted) {
-                Icon(
-                    Icons.Filled.CheckCircle,
-                    contentDescription = "Granted",
-                    tint = GateColorSide
-                )
-            } else {
-                TextButton(onClick = onFix) {
-                    Text("Fix")
-                }
-            }
-        },
         leadingContent = {
             Icon(
-                if (isGranted) Icons.Filled.VerifiedUser else Icons.Filled.Warning,
-                contentDescription = null,
-                tint = if (isGranted) GateColorSide
+                if (isGranted) Icons.Filled.CheckCircle else Icons.Filled.ErrorOutline,
+                contentDescription = if (isGranted) "Granted" else "Not granted",
+                tint = if (isGranted) gateAccent
                        else MaterialTheme.colorScheme.error
             )
+        },
+        trailingContent = if (isGranted) null else {
+            {
+                TextButton(onClick = onFix) { Text("Fix") }
+            }
         }
     )
 }

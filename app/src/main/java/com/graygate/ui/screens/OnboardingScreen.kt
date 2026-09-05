@@ -198,8 +198,10 @@ fun OnboardingScreen(
                         Surface(
                             modifier = Modifier.size(if (isActive) 10.dp else 8.dp),
                             shape = CircleShape,
+                            // 0.45, not 0.3: the inactive dots convey how many steps remain,
+                            // and at 0.3 they sat at 2.32:1 against the slate ground.
                             color = if (isActive) GateColorSide
-                                    else Color.White.copy(alpha = 0.3f)
+                                    else Color.White.copy(alpha = 0.45f)
                         ) {}
                     }
                 }
@@ -287,9 +289,12 @@ private fun OnboardingPage(
                     .fillMaxWidth()
                     .height(52.dp),
                 colors = if (step.isComplete() && !isLastPage) {
+                    // The disabled "Granted ✓" state still reports status, so it gets full-
+                    // strength text rather than the 0.7 that left it at 3.73:1. Disabled
+                    // controls are exempt from WCAG 1.4.3, but this one is worth reading.
                     ButtonDefaults.buttonColors(
                         disabledContainerColor = GateColorSide.copy(alpha = 0.3f),
-                        disabledContentColor = Color.White.copy(alpha = 0.7f)
+                        disabledContentColor = Color.White
                     )
                 } else {
                     ButtonDefaults.buttonColors(

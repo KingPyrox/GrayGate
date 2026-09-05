@@ -23,6 +23,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val pm = application.packageManager
 
     // --- Settings flows ---
+    val themePreference = settingsRepo.themePreference.stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(5000), ThemePreference.SYSTEM
+    )
     val manualOverride = settingsRepo.manualOverride.stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5000), ManualOverride.AUTO
     )
@@ -129,6 +132,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
+    }
+
+    fun setThemePreference(theme: ThemePreference) {
+        viewModelScope.launch { settingsRepo.setThemePreference(theme) }
     }
 
     fun setManualOverride(override: ManualOverride) {

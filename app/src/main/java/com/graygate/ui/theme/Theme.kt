@@ -4,14 +4,34 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.graygate.data.model.ThemePreference
 
 // Brand accent colors for the gate metaphor
 val GateColorSide = Color(0xFF4FC3F7)   // vibrant light blue -- "color" side
 val GateGraySide = Color(0xFF78909C)    // blue-grey -- "grayscale" side
 val BrandDarkSlate = Color(0xFF37474F)  // primary brand dark
+
+// Darker sibling of GateColorSide for light surfaces. GateColorSide is tuned
+// for dark backgrounds; on the light scheme's surface it lands around 1.9:1
+// contrast — under the 3:1 WCAG floor for UI components — which made "on"
+// switches read as fainter than "off" ones.
+val GateColorSideOnLight = Color(0xFF0288D1)
+
+/**
+ * Brand accent that stays legible on whichever surface it lands on. Derived
+ * from the active scheme rather than the system setting, so it stays correct
+ * if the theme is ever forced independently of the device.
+ */
+val gateAccent: Color
+    @Composable get() = if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
+        GateColorSideOnLight
+    } else {
+        GateColorSide
+    }
 
 private val LightColors = lightColorScheme(
     primary = Color(0xFF37474F),
@@ -71,9 +91,14 @@ private val GrayGateTypography = Typography(
 
 @Composable
 fun GrayGateTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themePreference: ThemePreference = ThemePreference.SYSTEM,
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when (themePreference) {
+        ThemePreference.SYSTEM -> isSystemInDarkTheme()
+        ThemePreference.LIGHT -> false
+        ThemePreference.DARK -> true
+    }
     val colorScheme = if (darkTheme) DarkColors else LightColors
 
     MaterialTheme(

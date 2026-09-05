@@ -24,8 +24,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            GrayGateTheme {
-                GrayGateApp()
+            // Hoisted so the theme wraps every destination, onboarding included.
+            val viewModel: MainViewModel = viewModel()
+            val themePreference by viewModel.themePreference.collectAsState()
+
+            GrayGateTheme(themePreference = themePreference) {
+                GrayGateApp(viewModel)
             }
         }
     }
@@ -39,6 +43,7 @@ fun GrayGateApp(viewModel: MainViewModel = viewModel()) {
     val apps by viewModel.appList.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedCount by viewModel.selectedCount.collectAsState()
+    val themePreference by viewModel.themePreference.collectAsState()
     val manualOverride by viewModel.manualOverride.collectAsState()
     val isEnabled by viewModel.isEnabled.collectAsState()
     val hasUsageStats by viewModel.hasUsageStats.collectAsState()
@@ -112,6 +117,8 @@ fun GrayGateApp(viewModel: MainViewModel = viewModel()) {
 
         composable("settings") {
             SettingsScreen(
+                themePreference = themePreference,
+                onThemePreferenceChange = { viewModel.setThemePreference(it) },
                 manualOverride = manualOverride,
                 hasUsageStats = hasUsageStats,
                 hasWriteSecure = hasWriteSecure,
