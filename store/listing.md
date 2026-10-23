@@ -83,9 +83,10 @@ Screenshot order matters more than most of this copy — it's what people actual
   That feature was **removed in v1.2.0** for Play compliance and no longer exists in the app.
   A live listing showing a removed feature is a misrepresentation risk — re-shoot or drop it.
 - `screenshots/screen1.png` shows the app list's **Blacklist/Whitelist mode chips**, which were
-  removed when whitelist mode was dropped from the app. This is also the file currently copied
-  into `docs/assets/app-list.png` and embedded live on the landing page — re-shoot against the
-  current single-mode app list and replace both copies.
+  removed when whitelist mode was dropped from the app. Since 2026-10-23 the landing page uses
+  `docs/assets/app-list-rows.png/.webp` instead: a crop of the same screenshot showing only the
+  app rows (no header, no mode chips). It's still an old capture: re-shoot against the current
+  app list and replace `screen1.png` and the crop.
 - `screenshots/screen4_grayscale.png` is **not actually in grayscale** — the Chrome logo in it
   is full colour. As the "here's the effect" shot, it currently demonstrates the opposite.
   Re-shoot with grayscale actually active.

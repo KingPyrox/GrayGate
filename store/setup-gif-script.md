@@ -3,8 +3,10 @@
 The single highest-leverage asset for conversion. It replaces the wall of text explaining
 the ADB step with ~15 seconds of "oh, that's it?"
 
-**Target:** `docs/assets/setup.gif` — the landing page picks it up automatically and drops
-the static terminal placeholder the moment the file exists. No HTML edit needed.
+**Target:** `docs/assets/setup.gif`. Since 2026-10-23 the landing page shows the static
+terminal stand-in directly (the old auto-detect `<img>` caused a 404 on every visit). When the
+recording exists, add the file and swap the `#gif-placeholder` block in `docs/index.html` for
+an `<img src="assets/setup.gif" width=… height=… alt="…">`.
 
 **Specs**
 - 1280×720 or 1000×560, whichever keeps text crisp
