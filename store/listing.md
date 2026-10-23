@@ -86,7 +86,7 @@ Screenshot order matters more than most of this copy — it's what people actual
   removed when whitelist mode was dropped from the app. Since 2026-10-23 the landing page uses
   `docs/assets/app-list-rows.png/.webp` instead: a crop of the same screenshot showing only the
   app rows (no header, no mode chips). It's still an old capture: re-shoot against the current
-  app list and replace `screen1.png`, `docs/assets/app-list.png` and the crop.
+  app list and replace `screen1.png` and the crop.
 - `screenshots/screen4_grayscale.png` is **not actually in grayscale** — the Chrome logo in it
   is full colour. As the "here's the effect" shot, it currently demonstrates the opposite.
   Re-shoot with grayscale actually active.
