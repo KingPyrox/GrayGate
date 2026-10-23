@@ -10,6 +10,7 @@
 <meta property="og:description" content="Pick the apps you're fighting with. GrayGate grays them out automatically — everything else on your phone stays untouched. One 60-second setup, then never again.">
 <meta property="og:type" content="website">
 
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%234a5c7a%22/%3E%3Cpolygon points=%2220,12 44,12 44,88 20,88%22 fill=%22%23ffffff%22 opacity=%220.25%22/%3E%3Cpolygon points=%2256,12 80,88 56,88%22 fill=%22%23ffffff%22/%3E%3C/svg%3E">
 <style>
     :root {
         --slate:      #37474F;
@@ -148,13 +149,16 @@
         border-bottom: 1px solid var(--line);
     }
     .phone.is-gray img { filter: grayscale(1) contrast(0.97); }
+    .phone { margin: 0; }
     .phone .label {
         padding: 0.7rem 0.5rem;
         font-size: 0.86rem;
         font-weight: 650;
     }
-    .phone.is-gray .label  { color: var(--gray-side); }
-    .phone.is-color .label { color: #2b8fc4; }
+    .phone.is-gray .label  { color: #546e7a; }   /* AA on white; --gray-side was 3.2:1 */
+    @media (prefers-color-scheme: dark) { .phone.is-gray .label { color: #a7b8c2; } }
+    :root[data-theme="dark"] .phone.is-gray .label { color: #a7b8c2; }
+    .phone.is-color .label { color: #1a6f9c; }   /* AA on white; #2b8fc4 was 3.7:1 */
     @media (prefers-color-scheme: dark) { .phone.is-color .label { color: var(--accent); } }
     :root[data-theme="dark"] .phone.is-color .label { color: var(--accent); }
 
@@ -179,7 +183,7 @@
         display: inline-flex; align-items: center; gap: 0.45rem;
         background: rgba(79,195,247,0.14);
         border: 1px solid rgba(79,195,247,0.4);
-        color: #1c7fa8;
+        color: #0f5c80;   /* AA on the tinted pill; #1c7fa8 failed */
         font-weight: 700; font-size: 0.85rem;
         padding: 0.3rem 0.85rem; border-radius: 999px;
         margin-bottom: 0.9rem;
@@ -252,6 +256,7 @@
         cursor: pointer;
         transition: background 0.15s ease;
     }
+    .cmd code:focus-visible, .term-body:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
     .cmd button:hover { background: #1e333d; }
     .cmd button.copied { background: var(--accent); color: #10242e; }
 
@@ -329,7 +334,7 @@
         border-radius: var(--radius);
         padding: 1.15rem;
     }
-    .feat-item h4 { font-size: 0.98rem; margin-bottom: 0.3rem; font-weight: 670; }
+    .feat-item h3 { font-size: 0.98rem; margin-bottom: 0.3rem; font-weight: 670; }
     .feat-item p  { font-size: 0.89rem; color: var(--ink-soft); }
 
     .privacy-band {
@@ -395,7 +400,7 @@
             <span class="badge">No root</span>
             <span class="badge">No accessibility service</span>
             <span class="badge">Zero data collected</span>
-            <span class="badge">Free</span>
+            <span class="badge">One-time purchase, no subscription</span>
         </div>
 
         <div class="cta-row">
@@ -405,6 +410,7 @@
     </div>
 </header>
 
+<main>
 <!-- ================= DEMO ================= -->
 <section class="demo">
     <div class="wrap">
@@ -413,19 +419,19 @@
         </div>
 
         <div class="stage">
-            <div class="phone is-gray">
-                <img src="assets/app-list.png" alt="A phone screen rendered in grayscale">
-                <div class="label">The apps you pick → gray</div>
-            </div>
-            <div class="phone is-color">
-                <img src="assets/app-list.png" alt="The same phone screen in full color">
-                <div class="label">Everything else → untouched</div>
-            </div>
+            <figure class="phone is-gray">
+                <picture><source type="image/webp" srcset="assets/app-list-rows.webp"><img src="assets/app-list-rows.png" width="640" height="965" alt="GrayGate's app list with toggles for Calendar, Camera, Chrome and other apps, shown in grayscale"></picture>
+                <figcaption class="label">The apps you pick → gray</figcaption>
+            </figure>
+            <figure class="phone is-color">
+                <picture><source type="image/webp" srcset="assets/app-list-rows.webp"><img src="assets/app-list-rows.png" width="640" height="965" alt="The same app list in full colour"></picture>
+                <figcaption class="label">Everything else → untouched</figcaption>
+            </figure>
         </div>
 
         <p class="stage-note">
             GrayGate watches which app is in the foreground and grays out the ones
-            you've selected as you switch to them. The change lands in about a second.
+            you've selected as you switch to them. The change lands within a second or two.
         </p>
     </div>
 </section>
@@ -466,22 +472,20 @@
 
             <div class="cmd-label">The entire command</div>
             <div class="cmd">
-                <code id="adb-cmd">adb shell pm grant com.graygate android.permission.WRITE_SECURE_SETTINGS</code>
+                <code id="adb-cmd" tabindex="0">adb shell pm grant com.graygate android.permission.WRITE_SECURE_SETTINGS</code>
                 <button id="copy-btn" type="button">Copy</button>
             </div>
 
             <div class="gif-slot" id="gif-slot">
-                <!-- Drop the screen recording in at docs/assets/setup.gif and it replaces
-                     the placeholder automatically. Shot list: store/setup-gif-script.md -->
-                <img src="assets/setup.gif"
-                     alt="Screen recording of the one-time setup command being run in a terminal"
-                     onerror="this.remove(); document.getElementById('gif-placeholder').hidden = false;">
-                <div id="gif-placeholder" class="gif-placeholder" hidden>
+                <!-- No recording yet (setup.gif was never uploaded, which caused a 404).
+                     When a recording exists, add it at docs/assets/setup.gif and replace this
+                     static terminal with an <img> (shot list: store/setup-gif-script.md). -->
+                <div id="gif-placeholder" class="gif-placeholder">
                     <div class="term">
                         <span class="dot"></span><span class="dot"></span><span class="dot"></span>
                         <span class="term-title">Terminal</span>
                     </div>
-                    <pre class="term-body"><span class="prompt">$</span> adb devices
+                    <pre class="term-body" tabindex="0" aria-label="Example terminal session"><span class="prompt">$</span> adb devices
 List of devices attached
 R58N90XXXX      device
 
@@ -489,7 +493,7 @@ R58N90XXXX      device
 
 <span class="done">Done. Unplug the cable — you're finished forever.</span></pre>
                 </div>
-                <div class="cap">The whole setup, start to finish, in real time.</div>
+                <div class="cap">What the one-time setup looks like in a terminal.</div>
             </div>
 
             <div class="reassure">
@@ -508,27 +512,27 @@ R58N90XXXX      device
         <h2>What else is in there</h2>
         <div class="feat-grid">
             <div class="feat-item">
-                <h4>Quick Settings tile</h4>
+                <h3>Quick Settings tile</h3>
                 <p>Swipe down and cycle Auto → Force Gray → Force Color without opening the app.</p>
             </div>
             <div class="feat-item">
-                <h4>Survives reboots</h4>
+                <h3>Survives reboots</h3>
                 <p>The service comes back on its own after a restart. Nothing to re-enable.</p>
             </div>
             <div class="feat-item">
-                <h4>Sleeps when you do</h4>
+                <h3>Sleeps when you do</h3>
                 <p>Detection pauses while the screen is off, so it isn't grinding through your battery.</p>
             </div>
             <div class="feat-item">
-                <h4>Restores your filter</h4>
+                <h3>Restores your filter</h3>
                 <p>If you use color correction for color blindness, your setting is saved and put back.</p>
             </div>
             <div class="feat-item">
-                <h4>Anti-flicker</h4>
+                <h3>Anti-flicker</h3>
                 <p>Debouncing and an ignore list keep system UI transitions from strobing the screen.</p>
             </div>
             <div class="feat-item">
-                <h4>Material You</h4>
+                <h3>Material You</h3>
                 <p>Dynamic color theming, light and dark, matched to the rest of your phone.</p>
             </div>
         </div>
@@ -566,6 +570,7 @@ R58N90XXXX      device
         </ul>
     </div>
 </section>
+</main>
 
 <footer>
     <div class="wrap">
